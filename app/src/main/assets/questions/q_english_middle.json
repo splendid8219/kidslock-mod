@@ -1,0 +1,16 @@
+[
+  {"q":"“I ___ a student.” 应填？","a":"am","d":["is","are","be"],"band":"c"},
+  {"q":"“He ___ to school yesterday.” 应填？","a":"went","d":["go","goes","going"],"band":"c"},
+  {"q":"“This is ___ book.” 应填？","a":"my","d":["I","me","mine"],"band":"c"},
+  {"q":"“She is ___ than me.” 应填？","a":"taller","d":["tall","tallest","more tall"],"band":"c"},
+  {"q":"“What ___ you doing?” 应填？","a":"are","d":["is","am","do"],"band":"c"},
+  {"q":"“There ___ some water in the glass.” 应填？","a":"is","d":["are","be","were"],"band":"c"},
+  {"q":"“I have ___ apple.” 应填？","a":"an","d":["a","the","/"],"band":"c"},
+  {"q":"“They ___ TV now.” 应填？","a":"are watching","d":["watches","watch","watching"],"band":"c"},
+  {"q":"“If it ___ tomorrow, we will stay home.” 应填？","a":"rains","d":["rain","will rain","rained"],"band":"h"},
+  {"q":"“The book ___ by Lu Xun.” 应填？","a":"was written","d":["wrote","is writing","writes"],"band":"h"},
+  {"q":"“He suggested ___ early.” 应填？","a":"leaving","d":["leave","to leave","left"],"band":"h"},
+  {"q":"“I have lived here ___ 10 years.” 应填？","a":"for","d":["since","from","in"],"band":"h"},
+  {"q":"“The more you read, ___ you know.” 应填？","a":"the more","d":["more","most","much"],"band":"h"},
+  {"q":"“It is important ___ English well.” 应填？","a":"to learn","d":["learn","learning","learned"],"band":"h"}
+]

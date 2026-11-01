@@ -1,0 +1,33 @@
+name: 构建儿童锁屏 APK（全学科适龄版）
+
+on:
+  workflow_dispatch:        # 允许在 GitHub 网页上手动点击运行
+  push:
+    branches: [main, master]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 准备 Android SDK 并接受许可
+        uses: android-actions/setup-android@v3
+
+      - name: 生成 Gradle Wrapper（原仓库未带 wrapper）
+        uses: gradle/gradle-build-action@v3
+        with:
+          gradle-version: '8.5'
+          arguments: wrapper
+
+      - name: 构建 Debug APK（可直接安装）
+        uses: gradle/gradle-build-action@v3
+        with:
+          arguments: assembleDebug
+
+      - name: 上传 APK 构件
+        uses: actions/upload-artifact@v4
+        with:
+          name: kidslock-quanzuhe-apk
+          path: app/build/outputs/apk/debug/*.apk
