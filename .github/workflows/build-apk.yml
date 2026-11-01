@@ -12,19 +12,33 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
 
-      - name: 准备 Android SDK 并接受许可
-        uses: android-actions/setup-android@v3
-
-      - name: 生成 Gradle Wrapper（原仓库未带 wrapper）
-        uses: gradle/gradle-build-action@v3
+      - name: 设置 JDK 17（AGP 8.2 必须有）
+        uses: actions/setup-java@v4
         with:
-          gradle-version: '8.5'
-          arguments: wrapper
+          distribution: 'temurin'
+          java-version: '17'
 
-      - name: 构建 Debug APK（可直接安装）
-        uses: gradle/gradle-build-action@v3
-        with:
-          arguments: assembleDebug
+      - name: 安装 Android SDK（手动，避开 setup-android 的 tools 包 bug）
+        run: |
+          SDK_ROOT=$HOME/android-sdk
+          mkdir -p $SDK_ROOT/cmdline-tools
+          curl -fsSL -o cmdtools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
+          unzip -q cmdtools.zip -d $SDK_ROOT/cmdline-tools
+          mv $SDK_ROOT/cmdline-tools/cmdline-tools $SDK_ROOT/cmdline-tools/latest
+          yes | $SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
+          $SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+          echo "ANDROID_HOME=$SDK_ROOT" >> $GITHUB_ENV
+
+      - name: 安装 Gradle 8.5
+        run: |
+          curl -fsSL -o gradle.zip https://services.gradle.org/distributions/gradle-8.5-bin.zip
+          unzip -q gradle.zip -d $HOME
+          echo "$HOME/gradle-8.5/bin" >> $GITHUB_PATH
+
+      - name: 构建 Debug APK
+        run: gradle assembleDebug --no-daemon
+        env:
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
 
       - name: 上传 APK 构件
         uses: actions/upload-artifact@v4
