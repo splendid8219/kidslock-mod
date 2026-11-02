@@ -110,7 +110,7 @@ apksigner sign --ks <你的.keystore> --out kidslock-release.apk aligned.apk
 
 ---
 
-## 本分支改造：全学科适龄版（施沛联定制）
+## 本分支改造：全学科适龄版（家长定制）
 
 在原版「认字解锁」基础上，将锁屏题目升级为**按年龄出适龄全学科题**：
 
