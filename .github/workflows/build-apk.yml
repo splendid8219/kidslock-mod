@@ -27,7 +27,9 @@ jobs:
           mv $SDK_ROOT/cmdline-tools/cmdline-tools $SDK_ROOT/cmdline-tools/latest
           yes | $SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses > /dev/null
           $SDK_ROOT/cmdline-tools/latest/bin/sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
+          # 关键：让 ANDROID_HOME 与 ANDROID_SDK_ROOT 指向同一目录，避免 AGP 报 SDK 路径冲突
           echo "ANDROID_HOME=$SDK_ROOT" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> $GITHUB_ENV
 
       - name: 安装 Gradle 8.5
         run: |
@@ -39,6 +41,7 @@ jobs:
         run: gradle assembleDebug --no-daemon
         env:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
+          ANDROID_SDK_ROOT: ${{ env.ANDROID_HOME }}
 
       - name: 上传 APK 构件
         uses: actions/upload-artifact@v4
