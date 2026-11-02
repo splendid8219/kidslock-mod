@@ -321,6 +321,64 @@
                 android:clickable="true" />
         </LinearLayout>
 
+        <!-- 教材册 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/section_volume"
+            android:textColor="@color/highlight"
+            android:textSize="@dimen/text_subtitle"
+            android:layout_marginBottom="@dimen/spacing_small" />
+
+        <TextView
+            android:id="@+id/tvVolume"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_primary"
+            android:textSize="@dimen/text_body"
+            android:layout_marginBottom="@dimen/spacing_small" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="@dimen/spacing_medium">
+
+            <Button android:id="@+id/btnVolAll"
+                android:layout_width="wrap_content"
+                android:layout_height="@dimen/btn_height"
+                android:layout_margin="@dimen/btn_margin"
+                android:minWidth="100dp"
+                android:text="@string/volume_all"
+                android:textSize="@dimen/text_body"
+                android:background="@drawable/btn_settings_bg"
+                android:textColor="@color/btn_text"
+                android:focusable="true"
+                android:clickable="true" />
+            <Button android:id="@+id/btnVolUp"
+                android:layout_width="wrap_content"
+                android:layout_height="@dimen/btn_height"
+                android:layout_margin="@dimen/btn_margin"
+                android:minWidth="100dp"
+                android:text="@string/volume_up"
+                android:textSize="@dimen/text_body"
+                android:background="@drawable/btn_settings_bg"
+                android:textColor="@color/btn_text"
+                android:focusable="true"
+                android:clickable="true" />
+            <Button android:id="@+id/btnVolDown"
+                android:layout_width="wrap_content"
+                android:layout_height="@dimen/btn_height"
+                android:layout_margin="@dimen/btn_margin"
+                android:minWidth="100dp"
+                android:text="@string/volume_down"
+                android:textSize="@dimen/text_body"
+                android:background="@drawable/btn_settings_bg"
+                android:textColor="@color/btn_text"
+                android:focusable="true"
+                android:clickable="true" />
+        </LinearLayout>
+
         <!-- 科目模式 -->
         <LinearLayout
             android:layout_width="wrap_content"

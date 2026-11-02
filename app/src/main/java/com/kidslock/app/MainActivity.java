@@ -43,6 +43,8 @@ public class MainActivity extends AppCompatActivity {
     private Button btnGradeMinus, btnGradePlus;
     private Button btnSubjectMode;
     private Button btnSubject;
+    private Button btnVolAll, btnVolUp, btnVolDown;
+    private TextView tvVolume;
 
     private final Runnable updateRunnable = new Runnable() {
         @Override
@@ -102,6 +104,10 @@ public class MainActivity extends AppCompatActivity {
         btnGradePlus = findViewById(R.id.btnGradePlus);
         btnSubjectMode = findViewById(R.id.btnSubjectMode);
         btnSubject = findViewById(R.id.btnSubject);
+        btnVolAll = findViewById(R.id.btnVolAll);
+        btnVolUp = findViewById(R.id.btnVolUp);
+        btnVolDown = findViewById(R.id.btnVolDown);
+        tvVolume = findViewById(R.id.tvVolume);
     }
 
     private void setupListeners() {
@@ -189,6 +195,11 @@ public class MainActivity extends AppCompatActivity {
             pref.setSubject(subs.get(idx));
             updateQuestionSettings();
         });
+
+        // 教材册（0=全册 / 1=上册 / 2=下册）
+        btnVolAll.setOnClickListener(v -> { pref.setVolume(0); updateQuestionSettings(); toast("教材册：全册"); });
+        btnVolUp.setOnClickListener(v -> { pref.setVolume(1); updateQuestionSettings(); toast("教材册：上册"); });
+        btnVolDown.setOnClickListener(v -> { pref.setVolume(2); updateQuestionSettings(); toast("教材册：下册"); });
     }
 
     private void updateQuestionSettings() {
@@ -214,6 +225,14 @@ public class MainActivity extends AppCompatActivity {
             btnSubject.setVisibility(View.VISIBLE);
             btnSubject.setText("单科：" + pref.getSubject());
         }
+
+        // 教材册
+        int vol = pref.getVolume();
+        btnVolAll.setBackgroundResource(vol == 0 ? R.drawable.btn_settings_bg : R.drawable.btn_option_bg);
+        btnVolUp.setBackgroundResource(vol == 1 ? R.drawable.btn_settings_bg : R.drawable.btn_option_bg);
+        btnVolDown.setBackgroundResource(vol == 2 ? R.drawable.btn_settings_bg : R.drawable.btn_option_bg);
+        String volText = vol == 0 ? "全册" : vol == 1 ? "上册" : "下册";
+        tvVolume.setText("教材册：" + volText + "（语文/英语按册筛选，数学不限册）");
     }
 
     private void showPinDialog() {

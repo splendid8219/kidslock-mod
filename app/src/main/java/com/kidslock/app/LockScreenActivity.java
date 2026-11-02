@@ -19,10 +19,10 @@ import java.util.List;
 /**
  * 锁屏界面：展示适龄全学科题目。
  * 解锁规则：锁屏后首次答对 1 题即解锁；若答错，所需连对题数 +1（封顶 5 题）。
- * - 按 HOME 键无法绕过（通过 HOME launcher alias 拦截）
- * - 按 BACK 键无效
- * - 答错重置连对计数并使难度 +1（封顶 5 题）
- * - 家长可通过输入 PIN 码强制解锁
+ * 题型双形态：
+ *  - 选择题（语文/英语/数学应用题）：4 个选项，方向键选择。
+ *  - 填空题（数学计算题）：屏幕虚拟数字键盘输入，适配遥控器。
+ * 防绕过：HOME 键拦截、BACK 无效、答错重置连对并使难度 +1。
  */
 public class LockScreenActivity extends AppCompatActivity {
 
@@ -44,9 +44,16 @@ public class LockScreenActivity extends AppCompatActivity {
     private View layoutMain;
     private TextView tvSubject;
     private TextView tvQuestion;
+    private TextView tvHint;
     private TextView tvProgress;
     private TextView tvFeedback;
+    private LinearLayout layoutOptions;
     private Button[] optionButtons;
+
+    // Views - 填空题
+    private LinearLayout layoutFill;
+    private TextView tvFillAnswer;
+    private StringBuilder fillInput = new StringBuilder();
 
     // Views - PIN模式
     private View layoutPin;
@@ -64,14 +71,12 @@ public class LockScreenActivity extends AppCompatActivity {
         bank = new QuestionBank(this);
         requiredCount = INITIAL_REQUIRED;
 
-        // 窗口属性：全屏，保持显示
         getWindow().addFlags(
                 WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
                         | WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
                         | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
                         | WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
         );
-        // 沉浸式
         hideSystemUI();
 
         initViews();
@@ -79,12 +84,15 @@ public class LockScreenActivity extends AppCompatActivity {
     }
 
     private void initViews() {
-        // 答题主界面
         layoutMain = findViewById(R.id.layoutMain);
         tvSubject = findViewById(R.id.tvSubject);
         tvQuestion = findViewById(R.id.tvQuestion);
+        tvHint = findViewById(R.id.tvHint);
         tvProgress = findViewById(R.id.tvProgress);
         tvFeedback = findViewById(R.id.tvFeedback);
+        layoutOptions = findViewById(R.id.layoutOptions);
+        layoutFill = findViewById(R.id.layoutFill);
+        tvFillAnswer = findViewById(R.id.tvFillAnswer);
 
         optionButtons = new Button[]{
                 findViewById(R.id.btnOption1),
@@ -96,6 +104,19 @@ public class LockScreenActivity extends AppCompatActivity {
             final int idx = i;
             optionButtons[i].setOnClickListener(v -> onOptionSelected(idx));
         }
+
+        // 数字键盘
+        int[] fillIds = {
+                R.id.btnFill7, R.id.btnFill8, R.id.btnFill9,
+                R.id.btnFill4, R.id.btnFill5, R.id.btnFill6,
+                R.id.btnFill1, R.id.btnFill2, R.id.btnFill3,
+                R.id.btnFill0, R.id.btnFillDot, R.id.btnFillDel
+        };
+        for (int id : fillIds) {
+            final int fid = id;
+            findViewById(fid).setOnClickListener(v -> onFillKey(fid));
+        }
+        findViewById(R.id.btnFillOk).setOnClickListener(v -> onFillSubmit());
 
         // 家长解锁按钮
         findViewById(R.id.btnParentUnlock).setOnClickListener(v -> showPinPad());
@@ -118,7 +139,6 @@ public class LockScreenActivity extends AppCompatActivity {
             updatePinDisplay();
         });
         findViewById(R.id.btnPinBack).setOnClickListener(v -> {
-            // 返回答题界面
             layoutPin.setVisibility(View.GONE);
             layoutMain.setVisibility(View.VISIBLE);
             pinInput.setLength(0);
@@ -126,69 +146,108 @@ public class LockScreenActivity extends AppCompatActivity {
         });
     }
 
-    // ==================== 答题出题 ====================
+    // ==================== 出题 ====================
 
     private void loadNextQuestion() {
         currentQuestion = bank.nextQuestion(
-                pref.getStage(), pref.getGrade(),
+                pref.getStage(), pref.getGrade(), pref.getVolume(),
                 pref.getSubjectMode() == 0, pref.getSubject());
         correctAnswer = currentQuestion.correct;
         currentOptions = currentQuestion.options;
+        fillInput.setLength(0);
 
         tvSubject.setText(currentQuestion.subject + " · " + currentQuestion.gradeLabel);
         tvQuestion.setText(currentQuestion.prompt);
 
-        for (int i = 0; i < optionButtons.length && i < currentOptions.size(); i++) {
-            optionButtons[i].setText(currentOptions.get(i));
-            optionButtons[i].setBackgroundResource(R.drawable.btn_option_bg);
-            optionButtons[i].setEnabled(true);
+        if (currentQuestion.isFillIn) {
+            // 填空题：显示数字键盘，隐藏选项
+            tvHint.setText(R.string.fill_prompt);
+            layoutOptions.setVisibility(View.GONE);
+            layoutFill.setVisibility(View.VISIBLE);
+            tvFillAnswer.setText("答案：");
+        } else {
+            // 选择题：显示选项，隐藏键盘
+            tvHint.setText(R.string.what_pronounce);
+            layoutFill.setVisibility(View.GONE);
+            layoutOptions.setVisibility(View.VISIBLE);
+            for (int i = 0; i < optionButtons.length && i < currentOptions.size(); i++) {
+                optionButtons[i].setText(currentOptions.get(i));
+                optionButtons[i].setBackgroundResource(R.drawable.btn_option_bg);
+                optionButtons[i].setEnabled(true);
+            }
         }
 
         updateProgress();
         tvFeedback.setVisibility(View.GONE);
     }
 
+    // ==================== 选择题判定 ====================
+
     private void onOptionSelected(int index) {
-        // 立即禁用所有选项，防止反馈延迟期间重复点击导致状态错乱
-        for (Button b : optionButtons) {
-            b.setEnabled(false);
-        }
-
+        for (Button b : optionButtons) b.setEnabled(false);
         String selected = currentOptions.get(index);
-        if (selected.equals(correctAnswer)) {
-            // 答对了
-            correctCount++;
+        boolean correct = selected.equals(correctAnswer);
+        if (correct) {
             optionButtons[index].setBackgroundResource(R.drawable.btn_option_correct);
-            tvFeedback.setText("答对了！");
-            tvFeedback.setTextColor(getResources().getColor(R.color.correct_green));
-            tvFeedback.setVisibility(View.VISIBLE);
-
-            if (correctCount >= requiredCount) {
-                // 全部答对，解锁
-                handler.postDelayed(this::unlock, 600);
-            } else {
-                handler.postDelayed(this::loadNextQuestion, 1000);
-            }
         } else {
-            // 答错了：连对计数归零，所需题数 +1（封顶 5）
-            correctCount = 0;
-            requiredCount = Math.min(requiredCount + 1, MAX_REQUIRED);
             optionButtons[index].setBackgroundResource(R.drawable.btn_option_wrong);
-            // 高亮正确答案
             for (int i = 0; i < currentOptions.size(); i++) {
                 if (currentOptions.get(i).equals(correctAnswer)) {
                     optionButtons[i].setBackgroundResource(R.drawable.btn_option_correct);
                     break;
                 }
             }
+        }
+        finishAnswer(correct);
+    }
+
+    // ==================== 填空题判定 ====================
+
+    private void onFillKey(int id) {
+        if (id == R.id.btnFillDel) {
+            if (fillInput.length() > 0) fillInput.deleteCharAt(fillInput.length() - 1);
+        } else if (id == R.id.btnFillDot) {
+            if (fillInput.indexOf(".") < 0 && fillInput.length() > 0) fillInput.append(".");
+        } else {
+            String d = ((Button) findViewById(id)).getText().toString();
+            if (fillInput.length() < 10) fillInput.append(d);
+        }
+        tvFillAnswer.setText("答案：" + fillInput.toString());
+    }
+
+    private void onFillSubmit() {
+        String input = fillInput.toString().trim();
+        if (input.isEmpty()) return;
+        boolean correct = input.equals(correctAnswer.trim());
+        finishAnswer(correct);
+    }
+
+    // ==================== 共用判定流程 ====================
+
+    private void finishAnswer(boolean correct) {
+        if (correct) {
+            correctCount++;
+            showFeedback("答对了！", R.color.correct_green);
+            if (correctCount >= requiredCount) {
+                handler.postDelayed(this::unlock, 600);
+            } else {
+                handler.postDelayed(this::loadNextQuestion, 1000);
+            }
+        } else {
+            correctCount = 0;
+            requiredCount = Math.min(requiredCount + 1, MAX_REQUIRED);
             String tip = requiredCount >= MAX_REQUIRED
                     ? "答错了，难度已到上限（需连对 " + requiredCount + " 题）"
                     : "答错了，难度 +1（需连对 " + requiredCount + " 题）";
-            tvFeedback.setText(tip);
-            tvFeedback.setTextColor(getResources().getColor(R.color.wrong_red));
-            tvFeedback.setVisibility(View.VISIBLE);
+            showFeedback(tip, R.color.wrong_red);
             handler.postDelayed(this::loadNextQuestion, 1500);
         }
+    }
+
+    private void showFeedback(String msg, int colorRes) {
+        tvFeedback.setText(msg);
+        tvFeedback.setTextColor(getResources().getColor(colorRes));
+        tvFeedback.setVisibility(View.VISIBLE);
     }
 
     private void updateProgress() {
@@ -202,7 +261,6 @@ public class LockScreenActivity extends AppCompatActivity {
         pref.setHomeAliasEnabled(this, false);
         pref.stopTimer();
         pref.resetPinFailures();
-        // 通知服务移除悬浮窗并停止
         LockService.requestUnlock(this);
         finishAffinity();
     }
@@ -229,11 +287,8 @@ public class LockScreenActivity extends AppCompatActivity {
     private void updatePinDisplay() {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < 4; i++) {
-            if (i < pinInput.length()) {
-                sb.append("●");
-            } else {
-                sb.append("○");
-            }
+            if (i < pinInput.length()) sb.append("●");
+            else sb.append("○");
             if (i < 3) sb.append("  ");
         }
         tvPinDisplay.setText(sb.toString());
@@ -260,13 +315,11 @@ public class LockScreenActivity extends AppCompatActivity {
 
     // ==================== 防绕过 ====================
 
-    /** HOME/切换应用后重新拉起锁屏的延迟（毫秒） */
     private static final long RELOCK_DELAY_MS = 800;
 
     private final Runnable reLockRunnable = new Runnable() {
         @Override
         public void run() {
-            // 离开时仍处于锁屏状态 → 立刻把锁屏界面拉回来
             if (pref.isLocked()) {
                 Intent lockIntent = new Intent(LockScreenActivity.this, LockScreenActivity.class);
                 lockIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -277,21 +330,17 @@ public class LockScreenActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        // 屏蔽返回键，不允许退出锁屏
-        // 如果在PIN界面，返回答题界面
         if (layoutPin.getVisibility() == View.VISIBLE) {
             layoutPin.setVisibility(View.GONE);
             layoutMain.setVisibility(View.VISIBLE);
             pinInput.setLength(0);
             updatePinDisplay();
         }
-        // 否则什么都不做
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        // 按 HOME / 切到其他应用时，如果仍处于锁屏状态，延迟后重新拉起锁屏
         if (pref.isLocked()) {
             handler.postDelayed(reLockRunnable, RELOCK_DELAY_MS);
         }
@@ -307,14 +356,11 @@ public class LockScreenActivity extends AppCompatActivity {
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
-        if (hasFocus) {
-            hideSystemUI();
-        }
+        if (hasFocus) hideSystemUI();
     }
 
     @Override
-    protected void onUserLeaveHint() {
-        // 阻止用户离开
+    public void onUserLeaveHint() {
         super.onUserLeaveHint();
     }
 

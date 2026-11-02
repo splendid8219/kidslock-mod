@@ -13,8 +13,13 @@
     <string name="grade_prefix">年级：</string>
     <string name="btn_grade_minus">年级 −</string>
     <string name="btn_grade_plus">年级 +</string>
+    <string name="section_volume">教材册（仅语文/英语按册筛选，数学不限册）</string>
+    <string name="volume_all">全册</string>
+    <string name="volume_up">上册</string>
+    <string name="volume_down">下册</string>
     <string name="subject_random">科目：随机混合</string>
     <string name="subject_fixed">单科：</string>
+    <string name="fill_prompt">请算出答案，并用数字键盘输入</string>
 
     <!-- PIN -->
     <string name="enter_pin">请输入家长PIN码</string>

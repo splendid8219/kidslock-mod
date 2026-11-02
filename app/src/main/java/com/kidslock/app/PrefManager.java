@@ -24,9 +24,10 @@ public class PrefManager {
     private static final String KEY_PARENT_PIN = "parent_pin";
     private static final String KEY_PIN_FAIL_COUNT = "pin_fail_count";
     private static final String KEY_PIN_LOCK_UNTIL = "pin_lock_until";
-    // 题目设置：学段(1小学/2初中/3高中)、年级(1-12)、科目模式(0随机/1单科)、固定科目
+    // 题目设置：学段(1小学/2初中/3高中)、年级(1-12)、册(0全/1上/2下)、科目模式(0随机/1单科)、固定科目
     private static final String KEY_STAGE = "quiz_stage";
     private static final String KEY_GRADE = "quiz_grade";
+    private static final String KEY_VOLUME = "quiz_volume";
     private static final String KEY_SUBJECT_MODE = "quiz_subject_mode";
     private static final String KEY_SUBJECT = "quiz_subject";
 
@@ -37,6 +38,7 @@ public class PrefManager {
     private static final String DEFAULT_PARENT_PIN = "1234";
     private static final int DEFAULT_STAGE = 1;
     private static final int DEFAULT_GRADE = 3;
+    private static final int DEFAULT_VOLUME = 0;
     private static final int DEFAULT_SUBJECT_MODE = 0;
     private static final String DEFAULT_SUBJECT = "数学";
     private static final int MAX_PIN_FAILS = 5;
@@ -100,6 +102,16 @@ public class PrefManager {
         if (grade < min) grade = min;
         if (grade > max) grade = max;
         prefs.edit().putInt(KEY_GRADE, grade).apply();
+    }
+
+    // --- 册（0=全册 / 1=上册 / 2=下册）---
+    public int getVolume() {
+        int v = prefs.getInt(KEY_VOLUME, DEFAULT_VOLUME);
+        return (v >= 0 && v <= 2) ? v : DEFAULT_VOLUME;
+    }
+
+    public void setVolume(int v) {
+        prefs.edit().putInt(KEY_VOLUME, (v >= 0 && v <= 2) ? v : DEFAULT_VOLUME).apply();
     }
 
     public int getSubjectMode() {

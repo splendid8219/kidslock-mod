@@ -20,13 +20,20 @@ import java.util.Random;
 import java.util.Set;
 
 /**
- * 全学科适龄题库。
- * - 数学：按年级程序化生成（无限、精确、随年级难度递增）。
- * - 语文/英语/物理/化学/生物/历史/地理/政治：从 assets/questions/*.json 加载，
- *   按 grade 对应的 band（low/high/c/h）筛选适龄题目，题库可随时增删不改代码。
+ * 全学科适龄题库（第三版：年级细分 + 向下兼容 + 上下册 + 数学含应用题）。
+ *
+ * 出题规则：
+ * - 语文 / 英语：从 assets/questions/*.json 加载固定题集。每条题带 grade(1-12) 与
+ *   volume(上/下/通用)。筛选条件：grade <= 选中年级（向下兼容，可出低年级题），
+ *   且 (volume=全册 或 该题volume匹配 或 该题为通用)。
+ * - 数学：按年级程序化生成，不依赖 JSON。实现年级 g 在 [1, 选中年级] 随机取，
+ *   天然向下兼容。
+ *     · 计算题 → 填空题（isFillIn=true，屏幕数字键盘输入）
+ *     · 应用题 → 选择题（4 选项）
  *
  * 学段：1=小学(语数英) 2=初中 3=高中(全学科)
  * 年级：1..12（小学1-6，初中7-9，高中10-12）
+ * 册：0=全册 1=上册 2=下册
  */
 public class QuestionBank {
 
@@ -71,13 +78,6 @@ public class QuestionBank {
         return stage == 1 ? 6 : stage == 2 ? 9 : 12;
     }
 
-    private static String bandForGrade(int grade) {
-        if (grade <= 3) return "low";
-        if (grade <= 6) return "high";
-        if (grade <= 9) return "c";
-        return "h";
-    }
-
     public static String gradeText(int grade) {
         String[] names = {"", "一年级", "二年级", "三年级", "四年级", "五年级", "六年级",
                 "初一", "初二", "初三", "高一", "高二", "高三"};
@@ -91,17 +91,27 @@ public class QuestionBank {
 
     // ===================== 主入口 =====================
 
-    public Question nextQuestion(int stage, int grade, boolean randomSubject, String fixedSubject) {
+    /**
+     * @param stage         学段 1/2/3
+     * @param grade         选中年级 1..12
+     * @param volume        册 0全/1上/2下
+     * @param randomSubject 是否随机混合科目
+     * @param fixedSubject  固定科目（randomSubject=false 时生效）
+     */
+    public Question nextQuestion(int stage, int grade, int volume,
+                                 boolean randomSubject, String fixedSubject) {
         List<String> subs = subjectsForStage(stage);
         String subject = randomSubject ? subs.get(random.nextInt(subs.size())) : fixedSubject;
         if (subject == null || subject.isEmpty()) subject = subs.get(0);
         String gradeLabel = gradeText(grade);
 
         if (subject.equals("数学")) {
+            // 数学按年级程序化生成（含应用题），忽略册，向下兼容
             return genMath(grade, gradeLabel);
         }
 
-        List<BankItem> items = filterByBand(loadBank(subject, stage), bandForGrade(grade));
+        // 语文 / 英语 / 中学各科：按 grade(向下兼容) + volume 筛选
+        List<BankItem> items = filterByGradeVolume(loadBank(subject, stage), grade, volume);
         if (items.isEmpty()) items = loadBank(subject, stage); // 退路：同科目全部
         if (items.isEmpty()) return genMath(grade, gradeLabel); // 兜底：数学
 
@@ -110,7 +120,7 @@ public class QuestionBank {
         opts.add(it.a);
         for (String d : it.d) opts.add(d);
         Collections.shuffle(opts, random);
-        return new Question(it.q, opts, it.a, subject, gradeLabel);
+        return new Question(it.q, opts, it.a, subject, gradeLabel, false);
     }
 
     // ===================== JSON 题库加载 =====================
@@ -118,7 +128,8 @@ public class QuestionBank {
     private static class BankItem {
         String q, a;
         String[] d;
-        String band;
+        int grade;      // 0 = 通用（不限年级）
+        String volume;  // "" = 通用（不限册）
     }
 
     private String assetName(String subject, int stage) {
@@ -169,7 +180,8 @@ public class QuestionBank {
                 JSONArray da = o.getJSONArray("d");
                 it.d = new String[da.length()];
                 for (int j = 0; j < da.length(); j++) it.d[j] = da.getString(j);
-                it.band = o.optString("band", "");
+                it.grade = o.optInt("grade", 0);
+                it.volume = o.optString("volume", "");
                 items.add(it);
             }
             Log.i(TAG, "Loaded " + items.size() + " items for " + key);
@@ -180,29 +192,21 @@ public class QuestionBank {
         return items;
     }
 
-    private List<BankItem> filterByBand(List<BankItem> items, String band) {
+    /** 筛选：向下兼容（grade <= maxGrade）+ 册匹配 */
+    private List<BankItem> filterByGradeVolume(List<BankItem> items, int maxGrade, int volume) {
         List<BankItem> out = new ArrayList<>();
-        for (BankItem it : items) if (band.equals(it.band)) out.add(it);
+        String volName = volume == 1 ? "上" : volume == 2 ? "下" : "";
+        for (BankItem it : items) {
+            // 年级：0(通用) 始终可用；否则必须 <= 选中年级（向下兼容）
+            if (it.grade > 0 && it.grade > maxGrade) continue;
+            // 册：全册 或 通用题 或 volume 匹配
+            if (volume != 0 && !volName.equals(it.volume) && !"".equals(it.volume) && !"通用".equals(it.volume)) continue;
+            out.add(it);
+        }
         return out;
     }
 
     // ===================== 数学：按年级程序化生成 =====================
-
-    private Question genMath(int grade, String gradeLabel) {
-        int band = grade <= 3 ? 0 : grade <= 6 ? 1 : grade <= 9 ? 2 : 3;
-        switch (band) {
-            case 0:
-                return mathLow(gradeLabel);
-            case 1:
-                return mathPrimaryHigh(gradeLabel);
-            case 2:
-                return mathMiddle(gradeLabel);
-            default:
-                return mathHigh(gradeLabel);
-        }
-    }
-
-    private final Random rnd = new Random();
 
     private int rnd(int a, int b) {
         return a + random.nextInt(b - a + 1);
@@ -249,212 +253,112 @@ public class QuestionBank {
         opts.add(fmt(correct));
         opts.addAll(mathDistractors(correct));
         Collections.shuffle(opts, random);
-        return new Question(prompt, opts, fmt(correct), "数学", gradeLabel);
+        return new Question(prompt, opts, fmt(correct), "数学", gradeLabel, false);
     }
 
-    // 小学低段 1-3 年级
-    private Question mathLow(String gradeLabel) {
-        int t = random.nextInt(4);
-        int a, b;
-        double ans;
-        String p;
-        switch (t) {
-            case 0:
-                a = rnd(1, 20);
-                b = rnd(1, 20 - a);
-                ans = a + b;
-                p = a + " + " + b + " = ?";
-                break;
-            case 1:
-                a = rnd(1, 20);
-                b = rnd(1, a);
-                ans = a - b;
-                p = a + " − " + b + " = ?";
-                break;
-            case 2:
-                a = rnd(2, 9);
-                b = rnd(2, 9);
-                ans = a * b;
-                p = a + " × " + b + " = ?";
-                break;
-            default:
-                a = rnd(11, 19);
-                b = rnd(1, 9);
-                ans = a - b;
-                p = a + " − " + b + " = ?";
-                break;
-        }
-        return buildMath(p, ans, gradeLabel);
+    private Question buildFill(String prompt, String correct, String gradeLabel) {
+        return new Question(prompt, null, correct, "数学", gradeLabel, true);
     }
 
-    // 小学高段 4-6 年级
-    private Question mathPrimaryHigh(String gradeLabel) {
-        int t = random.nextInt(7);
-        int a, b;
-        double ans;
-        String p;
-        switch (t) {
-            case 0: // 多位数加减
-                if (random.nextBoolean()) {
-                    a = rnd(100, 999);
-                    b = rnd(100, 999);
-                    ans = a + b;
-                    p = a + " + " + b + " = ?";
-                } else {
-                    a = rnd(500, 999);
-                    b = rnd(100, a - 1);
-                    ans = a - b;
-                    p = a + " − " + b + " = ?";
-                }
-                break;
-            case 1: // 多位数 × 一位数
-                a = rnd(100, 999);
-                b = rnd(2, 9);
-                ans = a * b;
-                p = a + " × " + b + " = ?";
-                break;
-            case 2: // 除法（整除）
-                b = rnd(2, 9);
-                a = b * rnd(11, 99);
-                ans = a / b;
-                p = a + " ÷ " + b + " = ?";
-                break;
-            case 3: // 小数加减
-                a = rnd(1, 9);
-                b = rnd(1, 9);
-                if (random.nextBoolean()) {
-                    ans = a + b / 10.0;
-                    p = a + " + 0." + b + " = ?";
-                } else {
-                    ans = a - b / 10.0;
-                    p = a + " − 0." + b + " = ?";
-                }
-                break;
-            case 4: // 长方形周长
-                a = rnd(5, 30);
-                b = rnd(5, 30);
-                ans = 2 * (a + b);
-                p = "长方形长 " + a + "、宽 " + b + "，周长是？";
-                break;
-            case 5: // 正方形面积
-                a = rnd(3, 20);
-                ans = a * a;
-                p = "正方形边长 " + a + "，面积是？";
-                break;
-            default: // 百分数
-                a = rnd(10, 50);
-                b = rnd(2, 9) * 10;
-                ans = a * b / 100.0;
-                p = a + "% 的 " + b + " 是？";
-                break;
-        }
-        return buildMath(p, ans, gradeLabel);
+    /** 数学总入口：实现年级 g 在 [1, grade] 随机 → 向下兼容 */
+    private Question genMath(int grade, String gradeLabel) {
+        int g = rnd(1, grade);
+        // 60% 计算题(填空) / 40% 应用题(选择)
+        if (random.nextInt(10) < 6) return mathCalc(g, gradeLabel);
+        return mathWordProblem(g, gradeLabel);
     }
 
-    // 初中 7-9 年级
-    private Question mathMiddle(String gradeLabel) {
-        int t = random.nextInt(8);
-        int a, b, x;
-        double ans;
-        String p;
-        switch (t) {
-            case 0: // 有理数加减（含负）
-                a = rnd(-9, 9);
-                b = rnd(-9, 9);
-                ans = a + b;
-                p = a + " + (" + b + ") = ?";
-                break;
-            case 1: // 乘方
-                a = rnd(2, 5);
-                b = rnd(2, 3);
-                ans = Math.pow(a, b);
-                p = a + " 的 " + b + " 次方是？";
-                break;
-            case 2: // 平方根
-                a = rnd(2, 9);
-                ans = a;
-                p = "√" + (a * a) + " = ?";
-                break;
-            case 3: // 一元一次方程 ax+b=c
-                x = rnd(1, 12);
-                a = rnd(2, 9);
-                b = rnd(1, 20);
-                ans = x;
-                p = a + "x + " + b + " = " + (a * x + b) + "，x = ?";
-                break;
-            case 4: // 勾股
-                int[][] tri = {{3, 4, 5}, {6, 8, 10}, {5, 12, 13}, {8, 15, 17}};
-                int[] tr = tri[rnd(0, tri.length - 1)];
-                ans = tr[2];
-                p = "直角三角形两直角边为 " + tr[0] + "、" + tr[1] + "，斜边是？";
-                break;
-            case 5: // 一次函数
-                a = rnd(2, 5);
-                b = rnd(-5, 5);
-                x = rnd(1, 6);
-                ans = a * x + b;
-                p = "当 x = " + x + " 时，y = " + a + "x " + (b >= 0 ? "+ " + b : "− " + (-b)) + " 的值是？";
-                break;
-            case 6: // 百分数/比例
-                a = rnd(10, 40);
-                b = rnd(50, 200);
-                ans = Math.round(a * b / 100.0);
-                p = a + "% 的 " + b + " 是？";
-                break;
-            default: // 因式分解/平方差简单
-                a = rnd(2, 9);
-                ans = a * a;
-                p = a + "² = ?";
-                break;
+    // ---------- 计算题（填空） ----------
+    private Question mathCalc(int g, String gradeLabel) {
+        if (g <= 1) {
+            if (random.nextBoolean()) {
+                int a = rnd(1, 20), b = rnd(1, 20 - a);
+                return buildFill(a + " + " + b + " = ?", String.valueOf(a + b), gradeLabel);
+            } else {
+                int a = rnd(1, 20), b = rnd(1, a);
+                return buildFill(a + " − " + b + " = ?", String.valueOf(a - b), gradeLabel);
+            }
+        } else if (g == 2) {
+            int t = random.nextInt(3);
+            if (t == 0) { int a = rnd(1, 50), b = rnd(1, 99 - a); return buildFill(a + " + " + b + " = ?", String.valueOf(a + b), gradeLabel); }
+            if (t == 1) { int a = rnd(20, 99), b = rnd(1, a); return buildFill(a + " − " + b + " = ?", String.valueOf(a - b), gradeLabel); }
+            int a = rnd(2, 9), b = rnd(2, 9); return buildFill(a + " × " + b + " = ?", String.valueOf(a * b), gradeLabel);
+        } else if (g == 3) {
+            int t = random.nextInt(4);
+            if (t == 0) { int a = rnd(100, 999), b = rnd(100, 999); return buildFill(a + " + " + b + " = ?", String.valueOf(a + b), gradeLabel); }
+            if (t == 1) { int a = rnd(500, 999), b = rnd(100, a - 1); return buildFill(a + " − " + b + " = ?", String.valueOf(a - b), gradeLabel); }
+            if (t == 2) { int a = rnd(100, 999), b = rnd(2, 9); return buildFill(a + " × " + b + " = ?", String.valueOf(a * b), gradeLabel); }
+            int b = rnd(2, 9), a = b * rnd(11, 99); return buildFill(a + " ÷ " + b + " = ?", String.valueOf(a / b), gradeLabel);
+        } else if (g == 4) {
+            int t = random.nextInt(4);
+            if (t == 0) { int a = rnd(10, 99), b = rnd(10, 99); return buildFill(a + " × " + b + " = ?", String.valueOf(a * b), gradeLabel); }
+            if (t == 1) { int b = rnd(12, 29), a = b * rnd(3, 19); return buildFill(a + " ÷ " + b + " = ?", String.valueOf(a / b), gradeLabel); }
+            if (t == 2) { int a = rnd(1, 9), b = rnd(1, 9); double ans = a + b / 10.0; return buildFill(a + " + 0." + b + " = ?", fmt(ans), gradeLabel); }
+            int a = rnd(10, 50), b = rnd(2, 9) * 10; return buildFill(a + "% 的 " + b + " 是？", fmt(a * b / 100.0), gradeLabel);
+        } else if (g == 5) {
+            int t = random.nextInt(5);
+            if (t == 0) { double a = rnd(1, 9) + rnd(1, 9) / 10.0, b = rnd(1, 9) + rnd(1, 9) / 10.0; return buildFill(fmt(a) + " × " + fmt(b) + " = ?", fmt(a * b), gradeLabel); }
+            if (t == 1) { int a = rnd(2, 9); return buildFill(a + "² = ?", String.valueOf(a * a), gradeLabel); }
+            if (t == 2) { int x = rnd(1, 12), a = rnd(2, 9), b = rnd(1, 20), c = a * x + b; return buildFill("x = ?  （" + a + "x + " + b + " = " + c + "）", String.valueOf(x), gradeLabel); }
+            if (t == 3) { int a = rnd(3, 20), b = rnd(3, 20); return buildFill("长方形长 " + a + " 宽 " + b + " 面积？", String.valueOf(a * b), gradeLabel); }
+            int a = rnd(3, 12), b = rnd(2, 9) * 2; return buildFill("三角形底 " + a + " 高 " + b + " 面积？", String.valueOf(a * b / 2), gradeLabel);
+        } else if (g == 6) {
+            int t = random.nextInt(5);
+            if (t == 0) { int a = rnd(2, 9), b = rnd(2, 9), c = rnd(2, 9); return buildFill(a + "×" + b + "×" + c + " = ?", String.valueOf(a * b * c), gradeLabel); }
+            if (t == 1) { int a = rnd(10, 50), b = rnd(2, 9) * 10; return buildFill(a + "% 的 " + b + " 是？", String.valueOf(a * b / 10), gradeLabel); }
+            if (t == 2) { int a = rnd(3, 15); return buildFill("正方体棱长 " + a + " 体积？", String.valueOf(a * a * a), gradeLabel); }
+            if (t == 3) { int x = rnd(2, 9), a = rnd(2, 9), k = rnd(1, 3), b = a * k, c = x * k; return buildFill(a + ":" + b + " = " + c + ":x，x=？", String.valueOf(x), gradeLabel); }
+            int a = rnd(2, 9), b = rnd(2, 9) * 10; return buildFill(a + " 的 " + b + "% 是？", String.valueOf(a * b / 10), gradeLabel);
+        } else if (g <= 9) { // 初中 7-9
+            int t = random.nextInt(5);
+            if (t == 0) { int a = rnd(-9, 9), b = rnd(-9, 9); return buildFill("(" + a + ") + (" + b + ") = ?", String.valueOf(a + b), gradeLabel); }
+            if (t == 1) { int a = rnd(2, 5), b = rnd(2, 3); return buildFill(a + " 的 " + b + " 次方 = ?", String.valueOf((int) Math.pow(a, b)), gradeLabel); }
+            if (t == 2) { int[][] tr = {{3, 4, 5}, {6, 8, 10}, {5, 12, 13}}; int[] x = tr[rnd(0, tr.length - 1)]; return buildFill("直角三角形直角边 " + x[0] + " 和 " + x[1] + "，斜边？", String.valueOf(x[2]), gradeLabel); }
+            if (t == 3) { int a = rnd(2, 5), b = rnd(-5, 5), xv = rnd(1, 6); return buildFill("x=" + xv + " 时 y=" + a + "x" + (b >= 0 ? "+" : "−") + Math.abs(b) + " 的值？", String.valueOf(a * xv + b), gradeLabel); }
+            int a = rnd(2, 9); return buildFill(a + "² = ?", String.valueOf(a * a), gradeLabel);
+        } else { // 高中 10-12
+            int t = random.nextInt(5);
+            if (t == 0) { int a = rnd(2, 4), b = rnd(2, 4); return buildFill(a + " 的 " + b + " 次方 = ?", String.valueOf((int) Math.pow(a, b)), gradeLabel); }
+            if (t == 1) { int[][] ang = {{30, 1}, {60, 1}}; int[] an = ang[rnd(0, 1)]; return buildFill((an[1] == 1 ? "sin " : "cos ") + an[0] + "° = ?", "0.5", gradeLabel); }
+            if (t == 2) { int a = rnd(1, 5), d = rnd(2, 5), n = rnd(4, 8); return buildFill("等差数列首项 " + a + " 公差 " + d + " 第 " + n + " 项？", String.valueOf(a + (n - 1) * d), gradeLabel); }
+            if (t == 3) { int l = rnd(2, 9), w = rnd(2, 9), h = rnd(2, 9); return buildFill("长方体 " + l + "×" + w + "×" + h + " 体积？", String.valueOf((long) l * w * h), gradeLabel); }
+            int a = rnd(2, 5), b = rnd(2, 4); return buildFill("log_" + a + "(" + (int) Math.pow(a, b) + ") = ?", String.valueOf(b), gradeLabel);
         }
-        return buildMath(p, ans, gradeLabel);
     }
 
-    // 高中 10-12 年级
-    private Question mathHigh(String gradeLabel) {
-        int t = random.nextInt(7);
-        double ans;
-        String p;
-        switch (t) {
-            case 0: // 指数
-                int a = rnd(2, 4);
-                int b = rnd(2, 4);
-                ans = Math.pow(a, b);
-                p = a + " 的 " + b + " 次方是？";
-                break;
-            case 1: // 特殊角三角函数（sin30°=cos60°=1/2）
-                int[][] ang = {{30, 1}, {60, 1}};
-                int[] an = ang[rnd(0, ang.length - 1)];
-                ans = 0.5;
-                p = (an[1] == 1 ? "sin " : "cos ") + an[0] + "° 的值是？";
-                break;
-            case 2: // 等差数列第 n 项
-                a = rnd(1, 5);
-                int d = rnd(2, 5);
-                int n = rnd(4, 8);
-                ans = a + (n - 1) * d;
-                p = "等差数列首项 " + a + "、公差 " + d + "，第 " + n + " 项是？";
-                break;
-            case 3: // 概率（骰子偶数）
-                ans = 0.5;
-                p = "掷一枚均匀骰子，出现偶数的概率是？";
-                break;
-            case 4: // 复数 i²
-                ans = -1;
-                p = "虚数单位 i 满足 i² = ?";
-                break;
-            case 5: // 长方体体积
-                int l = rnd(2, 9), w = rnd(2, 9), h = rnd(2, 9);
-                ans = (long) l * w * h;
-                p = "长方体长 " + l + "、宽 " + w + "、高 " + h + "，体积是？";
-                break;
-            default: // 对数 log_a(a^b)
-                a = rnd(2, 5);
-                b = rnd(2, 4);
-                ans = b;
-                p = "log_" + a + "(" + (int) Math.pow(a, b) + ") = ?";
-                break;
+    // ---------- 应用题（选择） ----------
+    private Question mathWordProblem(int g, String gradeLabel) {
+        if (g <= 2) {
+            if (random.nextBoolean()) {
+                int a = rnd(3, 20), b = rnd(3, 20);
+                return buildMath("小明有 " + a + " 支铅笔，又买了 " + b + " 支，一共有几支？", a + b, gradeLabel);
+            } else {
+                int a = rnd(10, 30), b = rnd(1, a);
+                return buildMath(a + " 个苹果，吃掉 " + b + " 个，还剩几个？", a - b, gradeLabel);
+            }
+        } else if (g <= 4) {
+            int t = random.nextInt(3);
+            if (t == 0) { int a = rnd(2, 9), b = rnd(2, 9); return buildMath("每盒有 " + a + " 块糖，" + b + " 盒一共有几块？", a * b, gradeLabel); }
+            if (t == 1) { int b = rnd(2, 9), a = rnd(2, 9); int total = a * b; return buildMath(a + " 个小朋友平均分 " + total + " 颗糖，每人几颗？", b, gradeLabel); }
+            int a = rnd(3, 20), b = rnd(3, 20); return buildMath("长方形长 " + a + " 厘米、宽 " + b + " 厘米，周长几厘米？", 2 * (a + b), gradeLabel);
+        } else if (g <= 6) {
+            int t = random.nextInt(3);
+            if (t == 0) { int a = rnd(10, 40), b = rnd(2, 9) * 10; return buildMath("一本书 " + a + " 页，小明看了 " + b + "%，看了几页？", a * b / 10, gradeLabel); }
+            if (t == 1) { int a = rnd(2, 6), b = rnd(2, 6); return buildMath(a + " 个小组，每组 " + b + " 人，总人数？", a * b, gradeLabel); }
+            int a = rnd(3, 12), b = rnd(3, 12); return buildMath("长方形长 " + a + " 宽 " + b + "，面积几？", a * b, gradeLabel);
+        } else if (g <= 9) { // 初中
+            int t = random.nextInt(3);
+            if (t == 0) { int v = rnd(40, 80), t1 = rnd(2, 5); return buildMath("小明骑车速度 " + v + " 千米/时，骑 " + t1 + " 小时走了多少千米？", v * t1, gradeLabel); }
+            if (t == 1) { int a = rnd(5, 15), b = rnd(3, 10); return buildMath("工程队每天修 " + a + " 米，" + b + " 天修了多少米？", a * b, gradeLabel); }
+            int x = rnd(2, 10), a = rnd(2, 9), b = rnd(1, 20), c = a * x + b; return buildMath("解方程：" + a + "x + " + b + " = " + c + "，x = ？", x, gradeLabel);
+        } else { // 高中
+            int t = random.nextInt(3);
+            if (t == 0) {
+                int[] tots = {2, 4, 5}; int total = tots[rnd(0, tots.length - 1)]; int fav = rnd(1, total - 1);
+                return buildMath("袋中有 " + total + " 个球，其中 " + fav + " 个红球，摸到红球概率？", (double) fav / total, gradeLabel);
+            }
+            if (t == 1) { int a = rnd(2, 6), d = rnd(2, 5), n = rnd(3, 8); return buildMath("等差数列首项 " + a + " 公差 " + d + " 第 " + n + " 项？", a + (n - 1) * d, gradeLabel); }
+            int a = rnd(2, 9), b = rnd(2, 4); return buildMath("log_" + a + "(" + (int) Math.pow(a, b) + ") = ?", b, gradeLabel);
         }
-        return buildMath(p, ans, gradeLabel);
     }
 }
