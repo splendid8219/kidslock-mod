@@ -1,10 +1,13 @@
 package com.kidslock.app;
 
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.Settings;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -78,6 +81,16 @@ public class LockScreenActivity extends AppCompatActivity {
                         | WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
         );
         hideSystemUI();
+
+        // 确保 HOME 拦截 alias 已启用；并提示家长需将本应用设为默认桌面
+        if (pref.isLocked()) {
+            pref.setHomeAliasEnabled(this, true);
+        }
+        if (!isDefaultHome()) {
+            Toast.makeText(this,
+                    "请将本应用设为默认桌面，才能拦截 HOME 键（设置→应用→默认应用→主屏幕）",
+                    Toast.LENGTH_LONG).show();
+        }
 
         initViews();
         loadNextQuestion();
@@ -362,6 +375,30 @@ public class LockScreenActivity extends AppCompatActivity {
     @Override
     public void onUserLeaveHint() {
         super.onUserLeaveHint();
+        // 锁屏状态下用户按 HOME / 切后台试图离开时，立即把锁屏重新拉回前台，
+        // 作为“默认桌面拦截”失效时的兜底（例如未设为默认桌面、或系统 Launcher 抢焦点）。
+        if (pref.isLocked()) {
+            Intent i = new Intent(this, LockScreenActivity.class);
+            i.addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_NEW_TASK);
+            try {
+                startActivity(i);
+            } catch (Exception ignored) {
+                // 个别 ROM 会忽略该调用，此时依赖悬浮窗 + 服务守护兜底
+            }
+        }
+    }
+
+    /**
+     * 判断本应用是否为系统默认桌面（主屏幕应用）。
+     * HOME 键拦截依赖此状态：只有默认桌面才能接收到 HOME 意图。
+     */
+    private boolean isDefaultHome() {
+        Intent intent = new Intent(Intent.ACTION_MAIN);
+        intent.addCategory(Intent.CATEGORY_HOME);
+        ResolveInfo ri = getPackageManager()
+                .resolveActivity(intent, PackageManager.MATCH_DEFAULT_ONLY);
+        if (ri == null || ri.activityInfo == null) return false;
+        return getPackageName().equals(ri.activityInfo.packageName);
     }
 
     private void hideSystemUI() {

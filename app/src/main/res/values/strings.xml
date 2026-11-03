@@ -35,6 +35,16 @@
     <string name="btn_lock_now">立即锁屏</string>
     <string name="btn_unlock">解锁</string>
     <string name="btn_set_pin">设置家长PIN</string>
+    <string name="btn_settings">设置（密码 / PIN）</string>
+    <string name="btn_set_home">设为默认桌面（拦截HOME键）</string>
+
+    <!-- 设置页：解锁密码 / PIN 管理 -->
+    <string name="settings_pin_title">解锁密码 / PIN 管理</string>
+    <string name="settings_current_pin">请输入当前密码</string>
+    <string name="settings_new_pin">请输入新密码（4位数字）</string>
+    <string name="settings_confirm_pin">请再次输入新密码</string>
+    <string name="settings_save_pin">保存密码</string>
+    <string name="settings_pin_note">默认密码为 1234，请尽快修改为专属密码，防止儿童解锁。</string>
 
     <!-- Notification -->
     <string name="notif_title">儿童锁屏运行中</string>

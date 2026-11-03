@@ -7,6 +7,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.Settings;
 import android.text.InputType;
 import android.view.View;
 import android.view.WindowManager;
@@ -74,6 +75,19 @@ public class MainActivity extends AppCompatActivity {
         setupListeners();
         updateStatus();
         updateQuestionSettings();
+
+        // 默认自动开始倒计时（仅当用户未锁屏且计时未激活时）。
+        // 时长沿用当前设置（默认 45 分钟），只有用户手动点时间按钮才会改变时长。
+        if (!pref.isLocked() && !pref.isTimerActive()) {
+            pref.startTimer(pref.getWatchLimitMinutes());
+            startLockService();
+            updateStatus();
+        }
+
+        // 提示家长：未设为默认桌面时 HOME 键无法被拦截
+        if (!pref.isLocked() && !isDefaultHome()) {
+            toast("提示：请将本应用设为默认桌面，才能拦截 HOME 键");
+        }
     }
 
     @Override
@@ -132,8 +146,14 @@ public class MainActivity extends AppCompatActivity {
             });
         }
 
-        // 设置PIN码
-        findViewById(R.id.btnSetPin).setOnClickListener(v -> showPinDialog());
+        // 设置入口：集中管理解锁密码 / PIN 码修改
+        findViewById(R.id.btnSettings).setOnClickListener(v -> {
+            Intent s = new Intent(this, SettingsActivity.class);
+            startActivity(s);
+        });
+
+        // 设为默认桌面（拦截 HOME 键的前提，海信电视需手动设置一次）
+        findViewById(R.id.btnSetHome).setOnClickListener(v -> openHomeSettings());
 
         // 开始计时
         findViewById(R.id.btnStartTimer).setOnClickListener(v -> {
@@ -163,13 +183,8 @@ public class MainActivity extends AppCompatActivity {
             startActivity(lockIntent);
         });
 
-        // 立即解锁（如果在锁屏状态，从设置页解锁）
-        findViewById(R.id.btnUnlock).setOnClickListener(v -> {
-            pref.setLocked(false);
-            pref.setHomeAliasEnabled(this, false);
-            toast("已解锁");
-            updateStatus();
-        });
+        // 立即解锁：必须先输入正确的解锁密码，避免儿童绕过
+        findViewById(R.id.btnUnlock).setOnClickListener(v -> showUnlockPinDialog());
 
         // ============ 题目设置 ============
         btnStage1.setOnClickListener(v -> { pref.setStage(1); updateQuestionSettings(); toast("学段：小学（语数英）"); });
@@ -235,9 +250,13 @@ public class MainActivity extends AppCompatActivity {
         tvVolume.setText("教材册：" + volText + "（语文/英语按册筛选，数学不限册）");
     }
 
-    private void showPinDialog() {
+    /**
+     * 解锁前必须先校验家长解锁密码（PIN）。
+     * 防止儿童在设置页直接点“解锁”绕过锁屏。
+     */
+    private void showUnlockPinDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("设置家长PIN码（4位数字）");
+        builder.setTitle("输入解锁密码");
 
         final EditText input = new EditText(this);
         input.setInputType(InputType.TYPE_CLASS_NUMBER);
@@ -247,15 +266,50 @@ public class MainActivity extends AppCompatActivity {
 
         builder.setPositiveButton("确定", (dialog, which) -> {
             String pin = input.getText().toString().trim();
-            if (pin.length() == 4) {
-                pref.setParentPin(pin);
-                toast("PIN码已设置");
+            if (pin.equals(pref.getParentPin())) {
+                pref.setLocked(false);
+                pref.setHomeAliasEnabled(this, false);
+                LockService.requestUnlock(this);
+                toast("已解锁");
+                updateStatus();
             } else {
-                toast("PIN码必须是4位数字");
+                toast("解锁密码错误");
             }
         });
         builder.setNegativeButton("取消", null);
         builder.show();
+    }
+
+    /**
+     * 引导家长把本应用设为默认桌面（主屏幕应用）。
+     * 这是 HOME 键能被本应用拦截的前提：海信等电视默认桌面是系统 launcher，
+     * 不设置则按 HOME 会回到系统桌面，锁屏被绕过。
+     */
+    private void openHomeSettings() {
+        if (isDefaultHome()) {
+            toast("本应用已是默认桌面，HOME 键已被拦截");
+            return;
+        }
+        // 优先打开系统“默认主屏幕应用”设置页
+        try {
+            Intent intent = new Intent(Settings.ACTION_HOME_SETTINGS);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+            toast("请在设置中将“儿童锁屏”设为默认主屏幕，返回后生效");
+            return;
+        } catch (Exception e) {
+            // 部分电视无此入口，给出手动指引
+            toast("请将本应用设为默认桌面：设置 → 应用 → 默认应用 → 主屏幕应用 → 儿童锁屏");
+        }
+    }
+
+    private boolean isDefaultHome() {
+        Intent intent = new Intent(Intent.ACTION_MAIN);
+        intent.addCategory(Intent.CATEGORY_HOME);
+        android.content.pm.ResolveInfo ri = getPackageManager()
+                .resolveActivity(intent, android.content.pm.PackageManager.MATCH_DEFAULT_ONLY);
+        if (ri == null || ri.activityInfo == null) return false;
+        return getPackageName().equals(ri.activityInfo.packageName);
     }
 
     private void startLockService() {

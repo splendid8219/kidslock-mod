@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/settings_bg"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/tv_margin_h"
+        android:gravity="center_horizontal">
+
+        <!-- 标题 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_title"
+            android:textColor="@color/accent"
+            android:textSize="@dimen/text_title"
+            android:textStyle="bold"
+            android:layout_marginBottom="@dimen/spacing_large" />
+
+        <!-- 解锁密码 / PIN 管理 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_pin_title"
+            android:textColor="@color/highlight"
+            android:textSize="@dimen/text_subtitle"
+            android:layout_marginBottom="@dimen/spacing_medium" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_current_pin"
+            android:textColor="@color/text_primary"
+            android:textSize="@dimen/text_body"
+            android:layout_marginBottom="@dimen/spacing_small" />
+
+        <EditText
+            android:id="@+id/etCurrentPin"
+            android:layout_width="280dp"
+            android:layout_height="@dimen/btn_height"
+            android:gravity="center"
+            android:inputType="number"
+            android:maxLength="4"
+            android:digits="0123456789"
+            android:textSize="@dimen/text_pin"
+            android:background="@drawable/btn_option_bg"
+            android:textColor="@color/btn_text"
+            android:layout_marginBottom="@dimen/spacing_medium" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_new_pin"
+            android:textColor="@color/text_primary"
+            android:textSize="@dimen/text_body"
+            android:layout_marginBottom="@dimen/spacing_small" />
+
+        <EditText
+            android:id="@+id/etNewPin"
+            android:layout_width="280dp"
+            android:layout_height="@dimen/btn_height"
+            android:gravity="center"
+            android:inputType="number"
+            android:maxLength="4"
+            android:digits="0123456789"
+            android:textSize="@dimen/text_pin"
+            android:background="@drawable/btn_option_bg"
+            android:textColor="@color/btn_text"
+            android:layout_marginBottom="@dimen/spacing_medium" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_confirm_pin"
+            android:textColor="@color/text_primary"
+            android:textSize="@dimen/text_body"
+            android:layout_marginBottom="@dimen/spacing_small" />
+
+        <EditText
+            android:id="@+id/etConfirmPin"
+            android:layout_width="280dp"
+            android:layout_height="@dimen/btn_height"
+            android:gravity="center"
+            android:inputType="number"
+            android:maxLength="4"
+            android:digits="0123456789"
+            android:textSize="@dimen/text_pin"
+            android:background="@drawable/btn_option_bg"
+            android:textColor="@color/btn_text"
+            android:layout_marginBottom="@dimen/spacing_medium" />
+
+        <Button
+            android:id="@+id/btnSavePin"
+            android:layout_width="280dp"
+            android:layout_height="@dimen/btn_height"
+            android:text="@string/settings_save_pin"
+            android:textSize="@dimen/text_button"
+            android:background="@drawable/btn_settings_bg"
+            android:textColor="@color/btn_text"
+            android:focusable="true"
+            android:clickable="true" />
+
+        <TextView
+            android:id="@+id/tvSettingsMsg"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/wrong_red"
+            android:textSize="@dimen/text_body"
+            android:layout_marginTop="@dimen/spacing_medium" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_pin_note"
+            android:textColor="@color/text_secondary"
+            android:textSize="@dimen/text_body"
+            android:gravity="center"
+            android:layout_marginTop="@dimen/spacing_large"
+            android:lineSpacingExtra="4dp" />
+
+    </LinearLayout>
+</ScrollView>
