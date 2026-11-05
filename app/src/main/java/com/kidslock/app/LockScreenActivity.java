@@ -270,11 +270,8 @@ public class LockScreenActivity extends AppCompatActivity {
     // ==================== 解锁 ====================
 
     private void unlock() {
-        pref.setLocked(false);
-        pref.setHomeAliasEnabled(this, false);
-        pref.stopTimer();
-        pref.resetPinFailures();
-        LockService.requestUnlock(this);
+        // 解锁后重启倒计时并恢复计时守护：实现“每到设定时间再次自动锁屏”
+        LockService.resumeWatching(this);
         finishAffinity();
     }
 

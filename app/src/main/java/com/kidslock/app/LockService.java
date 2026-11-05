@@ -67,6 +67,12 @@ public class LockService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         startForeground(NOTIFICATION_ID, buildNotification());
 
+        // 解锁后恢复观看：重新计时并回到计时模式（实现“每到设定时间再次锁屏”）
+        if (intent != null && "com.kidslock.app.ACTION_RESUME".equals(intent.getAction())) {
+            resumeWatchingInternal();
+            return START_STICKY;
+        }
+
         // 已锁屏 → 进入锁屏守护模式
         if (pref.isLocked()) {
             Log.i(TAG, "Device locked, starting lock watchdog");
@@ -98,6 +104,12 @@ public class LockService extends Service {
     // ==================== 计时模式 ====================
 
     private void startTicking() {
+        // 从锁屏守护模式切回计时模式时，先停掉 watchdog 与悬浮窗
+        if (watchdogRunnable != null) {
+            handler.removeCallbacks(watchdogRunnable);
+            watchdogRunnable = null;
+        }
+        if (overlayView != null) hideOverlay();
         tickRunnable = new Runnable() {
             @Override
             public void run() {
@@ -259,30 +271,34 @@ public class LockService extends Service {
     }
 
     /**
-     * 解锁时由 LockScreenActivity 调用，彻底移除悬浮窗和停止服务。
+     * 解锁（孩子答对 / 家长 PIN）后调用：重新启动倒计时并恢复计时守护，
+     * 使到点后再次自动锁屏（而非解锁后就一直能看电视）。
      */
-    public static void requestUnlock(Context context) {
+    public static void resumeWatching(Context context) {
         Intent intent = new Intent(context, LockService.class);
-        intent.setAction("com.kidslock.app.ACTION_UNLOCK");
-        context.startService(intent);
-    }
-
-    @Override
-    public void onStart(Intent intent, int startId) {
-        super.onStart(intent, startId);
-        if (intent != null && "com.kidslock.app.ACTION_UNLOCK".equals(intent.getAction())) {
-            unlockAndStop();
+        intent.setAction("com.kidslock.app.ACTION_RESUME");
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(intent);
+        } else {
+            context.startService(intent);
         }
     }
 
-    private void unlockAndStop() {
+    /**
+     * 恢复观看的内部实现：解锁、重启倒计时、停掉守护并回到计时模式。
+     */
+    private void resumeWatchingInternal() {
         pref.setLocked(false);
         pref.setHomeAliasEnabled(this, false);
-        pref.stopTimer();
         pref.resetPinFailures();
+        // 关键：重启倒计时（覆盖原 stopTimer），这样到点会再次自动锁屏
+        pref.startTimer(pref.getWatchLimitMinutes());
+        if (watchdogRunnable != null) {
+            handler.removeCallbacks(watchdogRunnable);
+            watchdogRunnable = null;
+        }
         hideOverlay();
-        stopForeground(true);
-        stopSelf();
+        startTicking();
     }
 
     // ==================== 通知 ====================

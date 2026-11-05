@@ -23,6 +23,12 @@
     <dimen name="btn_corner">8dp</dimen>
     <dimen name="btn_margin">8dp</dimen>
 
+    <!-- 填空题数字键盘（数学题用，独立缩小尺寸，适配电视窄高屏） -->
+    <dimen name="btn_fill_width">84dp</dimen>
+    <dimen name="btn_fill_height">44dp</dimen>
+    <dimen name="btn_fill_margin">6dp</dimen>
+    <dimen name="text_fill">22sp</dimen>
+
     <!-- 间距 -->
     <dimen name="spacing_small">8dp</dimen>
     <dimen name="spacing_medium">16dp</dimen>
