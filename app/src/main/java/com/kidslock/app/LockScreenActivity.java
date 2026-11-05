@@ -183,8 +183,10 @@ public class LockScreenActivity extends AppCompatActivity {
             tvHint.setText(R.string.what_pronounce);
             layoutFill.setVisibility(View.GONE);
             layoutOptions.setVisibility(View.VISIBLE);
+            // 选项前加小写字母 a) b) c) d)，便于遥控器/触屏区分选项
+            final String[] letters = {"a) ", "b) ", "c) ", "d) "};
             for (int i = 0; i < optionButtons.length && i < currentOptions.size(); i++) {
-                optionButtons[i].setText(currentOptions.get(i));
+                optionButtons[i].setText(letters[i] + currentOptions.get(i));
                 optionButtons[i].setBackgroundResource(R.drawable.btn_option_bg);
                 optionButtons[i].setEnabled(true);
             }

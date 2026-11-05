@@ -123,5 +123,146 @@
             android:layout_marginTop="@dimen/spacing_large"
             android:lineSpacingExtra="4dp" />
 
+        <!-- 应用打开密码（打开本应用时验证，默认 4321） -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="应用打开密码（打开本应用时验证）"
+            android:textColor="@color/highlight"
+            android:textSize="@dimen/text_subtitle"
+            android:layout_marginTop="@dimen/spacing_large"
+            android:layout_marginBottom="@dimen/spacing_medium" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="请输入当前打开密码"
+            android:textColor="@color/text_primary"
+            android:textSize="@dimen/text_body"
+            android:layout_marginBottom="@dimen/spacing_small" />
+
+        <EditText
+            android:id="@+id/etCurrentApp"
+            android:layout_width="280dp"
+            android:layout_height="@dimen/btn_height"
+            android:gravity="center"
+            android:inputType="number"
+            android:maxLength="4"
+            android:digits="0123456789"
+            android:textSize="@dimen/text_pin"
+            android:background="@drawable/btn_option_bg"
+            android:textColor="@color/btn_text"
+            android:layout_marginBottom="@dimen/spacing_medium" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="请输入新打开密码（4位数字）"
+            android:textColor="@color/text_primary"
+            android:textSize="@dimen/text_body"
+            android:layout_marginBottom="@dimen/spacing_small" />
+
+        <EditText
+            android:id="@+id/etNewApp"
+            android:layout_width="280dp"
+            android:layout_height="@dimen/btn_height"
+            android:gravity="center"
+            android:inputType="number"
+            android:maxLength="4"
+            android:digits="0123456789"
+            android:textSize="@dimen/text_pin"
+            android:background="@drawable/btn_option_bg"
+            android:textColor="@color/btn_text"
+            android:layout_marginBottom="@dimen/spacing_medium" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="请再次输入新打开密码"
+            android:textColor="@color/text_primary"
+            android:textSize="@dimen/text_body"
+            android:layout_marginBottom="@dimen/spacing_small" />
+
+        <EditText
+            android:id="@+id/etConfirmApp"
+            android:layout_width="280dp"
+            android:layout_height="@dimen/btn_height"
+            android:gravity="center"
+            android:inputType="number"
+            android:maxLength="4"
+            android:digits="0123456789"
+            android:textSize="@dimen/text_pin"
+            android:background="@drawable/btn_option_bg"
+            android:textColor="@color/btn_text"
+            android:layout_marginBottom="@dimen/spacing_medium" />
+
+        <Button
+            android:id="@+id/btnSaveApp"
+            android:layout_width="280dp"
+            android:layout_height="@dimen/btn_height"
+            android:text="保存应用密码"
+            android:textSize="@dimen/text_button"
+            android:background="@drawable/btn_settings_bg"
+            android:textColor="@color/btn_text"
+            android:focusable="true"
+            android:clickable="true" />
+
+        <TextView
+            android:id="@+id/tvAppMsg"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/wrong_red"
+            android:textSize="@dimen/text_body"
+            android:layout_marginTop="@dimen/spacing_medium" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="默认打开密码为 4321，请尽快修改为专属密码。"
+            android:textColor="@color/text_secondary"
+            android:textSize="@dimen/text_body"
+            android:gravity="center"
+            android:layout_marginTop="@dimen/spacing_medium"
+            android:lineSpacingExtra="4dp" />
+
+        <!-- 设备管理员（防卸载门槛） -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="设备管理员（防卸载保护）"
+            android:textColor="@color/highlight"
+            android:textSize="@dimen/text_subtitle"
+            android:layout_marginTop="@dimen/spacing_large"
+            android:layout_marginBottom="@dimen/spacing_medium" />
+
+        <Button
+            android:id="@+id/btnActivateAdmin"
+            android:layout_width="320dp"
+            android:layout_height="@dimen/btn_height"
+            android:text="激活设备管理员（防误卸载）"
+            android:textSize="@dimen/text_button"
+            android:background="@drawable/btn_settings_bg"
+            android:textColor="@color/btn_text"
+            android:focusable="true"
+            android:clickable="true" />
+
+        <TextView
+            android:id="@+id/tvAdminMsg"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/wrong_red"
+            android:textSize="@dimen/text_body"
+            android:layout_marginTop="@dimen/spacing_medium" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="激活后，卸载本应用需先在系统“设置 → 安全 → 设备管理员”中取消本应用的管理员权限。忘记取消方法也无妨，恢复出厂设置可清除。"
+            android:textColor="@color/text_secondary"
+            android:textSize="@dimen/text_body"
+            android:gravity="center"
+            android:layout_marginTop="@dimen/spacing_medium"
+            android:lineSpacingExtra="4dp" />
+
     </LinearLayout>
 </ScrollView>

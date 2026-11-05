@@ -169,18 +169,21 @@ public class LockService extends Service {
                     return;
                 }
 
-                // 如果锁屏界面本身已经跑到前台，就不需要重复拉起，避免刷屏
-                if (!isLockScreenOnTop()) {
-                    // 只有悬浮窗权限没开、且锁屏不在前台时，才尝试直接 startActivity。
-                    // 否则靠悬浮窗拦截即可。
+                if (isLockScreenOnTop()) {
+                    // 答题界面已在前台（孩子正在答题）：确保悬浮窗隐藏，
+                    // 否则悬浮窗(TYPE_APPLICATION_OVERLAY)会盖住答题界面，导致“点答题解锁无反应”。
+                    if (overlayView != null) hideOverlay();
+                } else {
+                    // 答题界面不在前台（如回到桌面）：
+                    // 1) 没有悬浮窗权限时，尝试直接拉起答题界面；
+                    // 2) 有悬浮窗权限时，显示全屏覆盖层拦截操作并引导回答题界面。
                     if (!canDrawOverlays()) {
                         Log.i(TAG, "Lock screen not on top, trying direct pull");
                         startLockScreenActivity();
+                    } else {
+                        showOverlayIfPermitted();
                     }
                 }
-
-                // 悬浮窗应该一直显示，防止被桌面覆盖
-                showOverlayIfPermitted();
 
                 handler.postDelayed(this, 800);
             }
@@ -327,7 +330,7 @@ public class LockService extends Service {
             contentText = "剩余观看时间：" + formatTime(remaining);
         }
 
-        Intent openIntent = new Intent(this, MainActivity.class);
+        Intent openIntent = new Intent(this, AppLockActivity.class);
         openIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pendingIntent = PendingIntent.getActivity(
                 this, 0, openIntent,
@@ -396,11 +399,20 @@ public class LockService extends Service {
                 btnUnlock.setFocusable(true);
                 btnUnlock.setFocusableInTouchMode(true);
                 btnUnlock.requestFocus();
-                btnUnlock.setOnClickListener(v -> startLockScreenActivity());
+                // 关键修复：先隐藏悬浮窗，再拉起答题界面。
+                // 否则悬浮窗(TYPE_APPLICATION_OVERLAY)会一直盖在答题界面上方，
+                // 导致“点答题解锁无反应 / 看不到答题界面”。
+                btnUnlock.setOnClickListener(v -> {
+                    hideOverlay();
+                    startLockScreenActivity();
+                });
             }
 
             // 整个覆盖层点击也打开锁屏（对触屏更友好）
-            setOnClickListener(v -> startLockScreenActivity());
+            setOnClickListener(v -> {
+                hideOverlay();
+                startLockScreenActivity();
+            });
         }
 
         @Override
@@ -410,6 +422,7 @@ public class LockService extends Service {
                 if (keyCode == KeyEvent.KEYCODE_ENTER
                         || keyCode == KeyEvent.KEYCODE_DPAD_CENTER
                         || keyCode == KeyEvent.KEYCODE_SPACE) {
+                    hideOverlay();
                     startLockScreenActivity();
                     return true;
                 }

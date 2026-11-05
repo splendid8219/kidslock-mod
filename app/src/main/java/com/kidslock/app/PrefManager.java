@@ -22,6 +22,8 @@ public class PrefManager {
     private static final String KEY_TIMER_ACTIVE = "timer_active";
     private static final String KEY_TIMER_END_TIME = "timer_end_time";
     private static final String KEY_PARENT_PIN = "parent_pin";
+    // 应用打开密码：打开本应用时校验（区别于锁屏解锁PIN）
+    private static final String KEY_APP_PASSWORD = "app_password";
     private static final String KEY_PIN_FAIL_COUNT = "pin_fail_count";
     private static final String KEY_PIN_LOCK_UNTIL = "pin_lock_until";
     // 题目设置：学段(1小学/2初中/3高中)、年级(1-12)、册(0全/1上/2下)、科目模式(0随机/1单科)、固定科目
@@ -33,9 +35,10 @@ public class PrefManager {
 
     // Defaults
     private static final boolean DEFAULT_AUTO_START = true;
-    private static final int DEFAULT_WATCH_LIMIT_MIN = 45;
+    private static final int DEFAULT_WATCH_LIMIT_MIN = 30;
     private static final int DEFAULT_UNLOCK_COUNT = 3;
     private static final String DEFAULT_PARENT_PIN = "1234";
+    private static final String DEFAULT_APP_PASSWORD = "4321";
     private static final int DEFAULT_STAGE = 1;
     private static final int DEFAULT_GRADE = 3;
     private static final int DEFAULT_VOLUME = 0;
@@ -169,6 +172,15 @@ public class PrefManager {
 
     public void setParentPin(String pin) {
         prefs.edit().putString(KEY_PARENT_PIN, pin).apply();
+    }
+
+    // --- App Open Password (打开应用所需密码，默认 4321) ---
+    public String getAppPassword() {
+        return prefs.getString(KEY_APP_PASSWORD, DEFAULT_APP_PASSWORD);
+    }
+
+    public void setAppPassword(String pw) {
+        prefs.edit().putString(KEY_APP_PASSWORD, pw).apply();
     }
 
     // --- PIN 防暴力尝试 ---

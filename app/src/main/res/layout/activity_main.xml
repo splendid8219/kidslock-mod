@@ -443,7 +443,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="默认解锁密码：1234，请到“设置”中尽快修改"
+            android:text="默认应用密码：4321（打开APP用）；默认解锁PIN：1234（解锁电视用）；请到“设置”中尽快修改"
             android:textColor="@color/text_secondary"
             android:textSize="@dimen/text_body"
             android:layout_marginTop="@dimen/spacing_large" />

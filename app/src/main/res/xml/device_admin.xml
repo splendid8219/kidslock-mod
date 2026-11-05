@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<device-admin xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-policies>
+        <!-- 仅用于防止卸载，不强制任何设备策略（不动锁屏密码/不锁设备） -->
+    </uses-policies>
+</device-admin>
