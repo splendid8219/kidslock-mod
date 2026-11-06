@@ -242,20 +242,20 @@ public class LockScreenActivity extends AppCompatActivity {
     private void finishAnswer(boolean correct) {
         if (correct) {
             correctCount++;
-            showFeedback("答对了！", R.color.correct_green);
+            showFeedback("答对了！正确答案：" + correctAnswer, R.color.correct_green);
             if (correctCount >= requiredCount) {
-                handler.postDelayed(this::unlock, 600);
+                handler.postDelayed(this::unlock, 1000);
             } else {
-                handler.postDelayed(this::loadNextQuestion, 1000);
+                handler.postDelayed(this::loadNextQuestion, 1500);
             }
         } else {
             correctCount = 0;
             requiredCount = Math.min(requiredCount + 1, MAX_REQUIRED);
             String tip = requiredCount >= MAX_REQUIRED
-                    ? "答错了，难度已到上限（需连对 " + requiredCount + " 题）"
-                    : "答错了，难度 +1（需连对 " + requiredCount + " 题）";
+                    ? "答错了，正确答案：" + correctAnswer + "（难度已到上限，需连对 " + requiredCount + " 题）"
+                    : "答错了，正确答案：" + correctAnswer + "（难度 +1，需连对 " + requiredCount + " 题）";
             showFeedback(tip, R.color.wrong_red);
-            handler.postDelayed(this::loadNextQuestion, 1500);
+            handler.postDelayed(this::loadNextQuestion, 1800);
         }
     }
 

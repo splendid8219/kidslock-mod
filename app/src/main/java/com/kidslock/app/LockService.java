@@ -89,11 +89,14 @@ public class LockService extends Service {
             return START_NOT_STICKY;
         }
 
-        // 如果已经超时，直接锁屏
+        // 如果已经超时，直接锁屏（仅当处于需要锁屏的时段内）
         if (pref.isTimerExpired()) {
-            Log.i(TAG, "Timer expired, locking now");
-            triggerLock();
-            return START_STICKY;
+            if (pref.isWithinLockWindow()) {
+                Log.i(TAG, "Timer expired, locking now");
+                triggerLock();
+                return START_STICKY;
+            }
+            // 时段外：自由使用，进入计时循环（不会锁屏）
         }
 
         // 开始计时循环
@@ -119,10 +122,11 @@ public class LockService extends Service {
                     showOverlayIfPermitted();
                     return;
                 }
-                if (pref.isTimerExpired()) {
+                if (pref.isTimerExpired() && pref.isWithinLockWindow()) {
                     triggerLock();
                     return;
                 }
+                // 时段外：即使计时到也不锁屏，自由使用（继续每秒检查，待进入时段再锁）
                 // 更新通知
                 updateNotification();
                 // 每秒检查
@@ -166,6 +170,13 @@ public class LockService extends Service {
                     hideOverlay();
                     stopForeground(true);
                     stopSelf();
+                    return;
+                }
+
+                // 时段外：自动解除锁屏，自由使用
+                if (!pref.isWithinLockWindow()) {
+                    Log.i(TAG, "Outside lock window, auto-unlock");
+                    resumeWatchingInternal();
                     return;
                 }
 
@@ -294,8 +305,9 @@ public class LockService extends Service {
         pref.setLocked(false);
         pref.setHomeAliasEnabled(this, false);
         pref.resetPinFailures();
-        // 关键：重启倒计时（覆盖原 stopTimer），这样到点会再次自动锁屏
-        pref.startTimer(pref.getWatchLimitMinutes());
+        // 关键：重启倒计时（覆盖原 stopTimer），这样到点会再次自动锁屏。
+        // 若设置了“解锁奖励”，则给下次观看窗口追加奖励分钟数。
+        pref.startTimer(pref.getWatchLimitMinutes() + pref.getUnlockBonusMinutes());
         if (watchdogRunnable != null) {
             handler.removeCallbacks(watchdogRunnable);
             watchdogRunnable = null;
@@ -325,6 +337,8 @@ public class LockService extends Service {
         String contentText;
         if (pref.isLocked()) {
             contentText = "电视已锁定，答对题目即可解锁";
+        } else if (!pref.isWithinLockWindow()) {
+            contentText = "时段外自由使用";
         } else {
             long remaining = pref.getRemainingMillis();
             contentText = "剩余观看时间：" + formatTime(remaining);

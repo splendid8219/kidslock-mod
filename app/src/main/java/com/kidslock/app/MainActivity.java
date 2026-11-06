@@ -47,6 +47,13 @@ public class MainActivity extends AppCompatActivity {
     private Button btnVolAll, btnVolUp, btnVolDown;
     private TextView tvVolume;
 
+    // 奖励与时段
+    private Button btnBonusMinus, btnBonusPlus, btnTimeWindow;
+    private TextView tvBonus;
+    private LinearLayout layoutWindowHours;
+    private Button btnWinStartMinus, btnWinStartPlus, btnWinEndMinus, btnWinEndPlus;
+    private TextView tvWinStart, tvWinEnd;
+
     private final Runnable updateRunnable = new Runnable() {
         @Override
         public void run() {
@@ -75,6 +82,8 @@ public class MainActivity extends AppCompatActivity {
         setupListeners();
         updateStatus();
         updateQuestionSettings();
+        updateRewardUI();
+        updateWindowUI();
 
         // 默认自动开始倒计时（仅当用户未锁屏且计时未激活时）。
         // 时长沿用当前设置（默认 45 分钟），只有用户手动点时间按钮才会改变时长。
@@ -122,6 +131,19 @@ public class MainActivity extends AppCompatActivity {
         btnVolUp = findViewById(R.id.btnVolUp);
         btnVolDown = findViewById(R.id.btnVolDown);
         tvVolume = findViewById(R.id.tvVolume);
+
+        // 奖励与时段
+        btnBonusMinus = findViewById(R.id.btnBonusMinus);
+        btnBonusPlus = findViewById(R.id.btnBonusPlus);
+        tvBonus = findViewById(R.id.tvBonus);
+        btnTimeWindow = findViewById(R.id.btnTimeWindow);
+        layoutWindowHours = findViewById(R.id.layoutWindowHours);
+        btnWinStartMinus = findViewById(R.id.btnWinStartMinus);
+        btnWinStartPlus = findViewById(R.id.btnWinStartPlus);
+        btnWinEndMinus = findViewById(R.id.btnWinEndMinus);
+        btnWinEndPlus = findViewById(R.id.btnWinEndPlus);
+        tvWinStart = findViewById(R.id.tvWinStart);
+        tvWinEnd = findViewById(R.id.tvWinEnd);
     }
 
     private void setupListeners() {
@@ -215,6 +237,29 @@ public class MainActivity extends AppCompatActivity {
         btnVolAll.setOnClickListener(v -> { pref.setVolume(0); updateQuestionSettings(); toast("教材册：全册"); });
         btnVolUp.setOnClickListener(v -> { pref.setVolume(1); updateQuestionSettings(); toast("教材册：上册"); });
         btnVolDown.setOnClickListener(v -> { pref.setVolume(2); updateQuestionSettings(); toast("教材册：下册"); });
+
+        // ============ 奖励与时段 ============
+        btnBonusMinus.setOnClickListener(v -> {
+            pref.setUnlockBonusMinutes(pref.getUnlockBonusMinutes() - 1);
+            updateRewardUI();
+            toast("解锁奖励：" + pref.getUnlockBonusMinutes() + " 分钟");
+        });
+        btnBonusPlus.setOnClickListener(v -> {
+            pref.setUnlockBonusMinutes(pref.getUnlockBonusMinutes() + 1);
+            updateRewardUI();
+            toast("解锁奖励：" + pref.getUnlockBonusMinutes() + " 分钟");
+        });
+
+        btnTimeWindow.setOnClickListener(v -> {
+            pref.setTimeWindowEnabled(!pref.isTimeWindowEnabled());
+            updateWindowUI();
+            toast(pref.isTimeWindowEnabled() ? "时段管控：已开启" : "时段管控：已关闭");
+        });
+
+        btnWinStartMinus.setOnClickListener(v -> { pref.setWindowStartHour(pref.getWindowStartHour() - 1); updateWindowUI(); });
+        btnWinStartPlus.setOnClickListener(v -> { pref.setWindowStartHour(pref.getWindowStartHour() + 1); updateWindowUI(); });
+        btnWinEndMinus.setOnClickListener(v -> { pref.setWindowEndHour(pref.getWindowEndHour() - 1); updateWindowUI(); });
+        btnWinEndPlus.setOnClickListener(v -> { pref.setWindowEndHour(pref.getWindowEndHour() + 1); updateWindowUI(); });
     }
 
     private void updateQuestionSettings() {
@@ -248,6 +293,22 @@ public class MainActivity extends AppCompatActivity {
         btnVolDown.setBackgroundResource(vol == 2 ? R.drawable.btn_settings_bg : R.drawable.btn_option_bg);
         String volText = vol == 0 ? "全册" : vol == 1 ? "上册" : "下册";
         tvVolume.setText("教材册：" + volText + "（语文/英语按册筛选，数学不限册）");
+    }
+
+    private void updateRewardUI() {
+        int bonus = pref.getUnlockBonusMinutes();
+        tvBonus.setText("解锁奖励：" + (bonus == 0 ? "关闭" : bonus + " 分钟"));
+    }
+
+    private void updateWindowUI() {
+        boolean on = pref.isTimeWindowEnabled();
+        btnTimeWindow.setText("时段管控：" + (on ? "开" : "关"));
+        btnTimeWindow.setBackgroundResource(on ? R.drawable.btn_settings_bg : R.drawable.btn_option_bg);
+        layoutWindowHours.setVisibility(on ? View.VISIBLE : View.GONE);
+        if (on) {
+            tvWinStart.setText("开始 " + String.format("%02d:00", pref.getWindowStartHour()));
+            tvWinEnd.setText("结束 " + String.format("%02d:00", pref.getWindowEndHour()));
+        }
     }
 
     /**

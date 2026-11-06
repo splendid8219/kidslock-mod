@@ -133,3 +133,9 @@ apksigner sign --ks <你的.keystore> --out kidslock-release.apk aligned.apk
 原仓库未带 Gradle Wrapper，云构建工作流会先 `gradle wrapper` 再 `assembleDebug`；
 本地可用 Android Studio 直接打开 `src/` 构建（Build APK）。
 详见 `../构建与安装指南.md`。
+
+---
+
+## 许可证
+
+本分支（kidslock-mod）基于 [wplleo/kidslock](https://github.com/wplleo/kidslock)（儿童锁屏·电视认字锁屏）二次开发。原项目未附带许可证文件；本分支以 MIT License 发布，详见 `LICENSE`。

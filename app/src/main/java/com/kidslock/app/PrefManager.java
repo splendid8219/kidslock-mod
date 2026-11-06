@@ -32,6 +32,12 @@ public class PrefManager {
     private static final String KEY_VOLUME = "quiz_volume";
     private static final String KEY_SUBJECT_MODE = "quiz_subject_mode";
     private static final String KEY_SUBJECT = "quiz_subject";
+    // 解锁奖励：答对解锁后给“下次观看窗口”追加的分钟数（默认 0 = 不变）
+    private static final String KEY_UNLOCK_BONUS_MIN = "unlock_bonus_min";
+    // 时段管控：开启后，仅在设定时段内自动锁屏，时段外自由使用
+    private static final String KEY_TIME_WINDOW_ENABLED = "time_window_enabled";
+    private static final String KEY_WINDOW_START_HOUR = "window_start_hour";
+    private static final String KEY_WINDOW_END_HOUR = "window_end_hour";
 
     // Defaults
     private static final boolean DEFAULT_AUTO_START = true;
@@ -44,6 +50,10 @@ public class PrefManager {
     private static final int DEFAULT_VOLUME = 0;
     private static final int DEFAULT_SUBJECT_MODE = 0;
     private static final String DEFAULT_SUBJECT = "数学";
+    private static final int DEFAULT_UNLOCK_BONUS_MIN = 0;
+    private static final boolean DEFAULT_TIME_WINDOW_ENABLED = false;
+    private static final int DEFAULT_WINDOW_START_HOUR = 17;
+    private static final int DEFAULT_WINDOW_END_HOUR = 21;
     private static final int MAX_PIN_FAILS = 5;
     private static final long PIN_LOCKOUT_MS = 30_000;
 
@@ -131,6 +141,62 @@ public class PrefManager {
 
     public void setSubject(String subject) {
         prefs.edit().putString(KEY_SUBJECT, subject).apply();
+    }
+
+    // --- 解锁奖励（答对解锁后给下次观看窗口追加的分钟数）---
+    public int getUnlockBonusMinutes() {
+        return prefs.getInt(KEY_UNLOCK_BONUS_MIN, DEFAULT_UNLOCK_BONUS_MIN);
+    }
+
+    public void setUnlockBonusMinutes(int minutes) {
+        int m = Math.max(0, Math.min(minutes, 30));
+        prefs.edit().putInt(KEY_UNLOCK_BONUS_MIN, m).apply();
+    }
+
+    // --- 时段管控（时段外自由使用）---
+    public boolean isTimeWindowEnabled() {
+        return prefs.getBoolean(KEY_TIME_WINDOW_ENABLED, DEFAULT_TIME_WINDOW_ENABLED);
+    }
+
+    public void setTimeWindowEnabled(boolean enabled) {
+        prefs.edit().putBoolean(KEY_TIME_WINDOW_ENABLED, enabled).apply();
+    }
+
+    public int getWindowStartHour() {
+        return prefs.getInt(KEY_WINDOW_START_HOUR, DEFAULT_WINDOW_START_HOUR);
+    }
+
+    public void setWindowStartHour(int h) {
+        int v = Math.max(0, Math.min(h, 23));
+        prefs.edit().putInt(KEY_WINDOW_START_HOUR, v).apply();
+    }
+
+    public int getWindowEndHour() {
+        return prefs.getInt(KEY_WINDOW_END_HOUR, DEFAULT_WINDOW_END_HOUR);
+    }
+
+    public void setWindowEndHour(int h) {
+        int v = Math.max(0, Math.min(h, 23));
+        prefs.edit().putInt(KEY_WINDOW_END_HOUR, v).apply();
+    }
+
+    /**
+     * 当前是否处于“需要锁屏”的时段。
+     * 时段管控未开启时始终返回 true（即任何时间都按正常规则锁屏）。
+     * 开启后：仅当当前小时落在 [start, end) 内才需要锁屏，时段外自由使用。
+     * 支持跨午夜（如 22 点到次日 7 点）。
+     */
+    public boolean isWithinLockWindow() {
+        if (!isTimeWindowEnabled()) return true;
+        int nowHour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
+        int start = getWindowStartHour();
+        int end = getWindowEndHour();
+        if (start == end) return true; // 起止相同视为全天
+        if (start < end) {
+            return nowHour >= start && nowHour < end;
+        } else {
+            return nowHour >= start || nowHour < end;
+        }
     }
 
     // --- Lock State ---

@@ -439,11 +439,93 @@
             android:focusable="true"
             android:clickable="true" />
 
+        <!-- ===== 奖励与时段 ===== -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="奖励与时段"
+            android:textColor="@color/highlight"
+            android:textSize="@dimen/text_subtitle"
+            android:layout_marginTop="@dimen/spacing_large"
+            android:layout_marginBottom="@dimen/spacing_small" />
+
+        <!-- 解锁奖励：答对解锁后给下次观看窗口追加的分钟数（默认 0 = 不变） -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="@dimen/spacing_small">
+            <Button android:id="@+id/btnBonusMinus"
+                android:layout_width="wrap_content" android:layout_height="@dimen/btn_height"
+                android:layout_margin="@dimen/btn_margin" android:minWidth="120dp"
+                android:text="奖励 -" android:textSize="@dimen/text_body"
+                android:background="@drawable/btn_settings_bg" android:textColor="@color/btn_text"
+                android:focusable="true" android:clickable="true" />
+            <TextView android:id="@+id/tvBonus"
+                android:layout_width="wrap_content" android:layout_height="@dimen/btn_height"
+                android:gravity="center" android:minWidth="220dp"
+                android:textColor="@color/text_primary" android:textSize="@dimen/text_body"
+                android:textStyle="bold" />
+            <Button android:id="@+id/btnBonusPlus"
+                android:layout_width="wrap_content" android:layout_height="@dimen/btn_height"
+                android:layout_margin="@dimen/btn_margin" android:minWidth="120dp"
+                android:text="奖励 +" android:textSize="@dimen/text_body"
+                android:background="@drawable/btn_settings_bg" android:textColor="@color/btn_text"
+                android:focusable="true" android:clickable="true" />
+        </LinearLayout>
+
+        <!-- 时段管控：开启后仅时段内自动锁屏，时段外自由使用 -->
+        <Button android:id="@+id/btnTimeWindow"
+            android:layout_width="wrap_content" android:layout_height="@dimen/btn_height"
+            android:layout_marginTop="@dimen/spacing_small" android:minWidth="320dp"
+            android:text="时段管控：关" android:textSize="@dimen/text_button"
+            android:background="@drawable/btn_settings_bg" android:textColor="@color/btn_text"
+            android:focusable="true" android:clickable="true" />
+
+        <!-- 时段起止（仅时段管控开启时显示） -->
+        <LinearLayout android:id="@+id/layoutWindowHours"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:orientation="horizontal" android:layout_marginTop="@dimen/spacing_small"
+            android:visibility="gone">
+            <Button android:id="@+id/btnWinStartMinus"
+                android:layout_width="wrap_content" android:layout_height="@dimen/btn_height"
+                android:layout_margin="@dimen/btn_margin" android:minWidth="100dp"
+                android:text="开始 -" android:textSize="@dimen/text_body"
+                android:background="@drawable/btn_settings_bg" android:textColor="@color/btn_text"
+                android:focusable="true" android:clickable="true" />
+            <TextView android:id="@+id/tvWinStart"
+                android:layout_width="wrap_content" android:layout_height="@dimen/btn_height"
+                android:gravity="center" android:minWidth="130dp"
+                android:textColor="@color/text_primary" android:textSize="@dimen/text_body" android:textStyle="bold" />
+            <Button android:id="@+id/btnWinStartPlus"
+                android:layout_width="wrap_content" android:layout_height="@dimen/btn_height"
+                android:layout_margin="@dimen/btn_margin" android:minWidth="100dp"
+                android:text="开始 +" android:textSize="@dimen/text_body"
+                android:background="@drawable/btn_settings_bg" android:textColor="@color/btn_text"
+                android:focusable="true" android:clickable="true" />
+            <Button android:id="@+id/btnWinEndMinus"
+                android:layout_width="wrap_content" android:layout_height="@dimen/btn_height"
+                android:layout_margin="@dimen/btn_margin" android:minWidth="100dp"
+                android:text="结束 -" android:textSize="@dimen/text_body"
+                android:background="@drawable/btn_settings_bg" android:textColor="@color/btn_text"
+                android:focusable="true" android:clickable="true" />
+            <TextView android:id="@+id/tvWinEnd"
+                android:layout_width="wrap_content" android:layout_height="@dimen/btn_height"
+                android:gravity="center" android:minWidth="130dp"
+                android:textColor="@color/text_primary" android:textSize="@dimen/text_body" android:textStyle="bold" />
+            <Button android:id="@+id/btnWinEndPlus"
+                android:layout_width="wrap_content" android:layout_height="@dimen/btn_height"
+                android:layout_margin="@dimen/btn_margin" android:minWidth="100dp"
+                android:text="结束 +" android:textSize="@dimen/text_body"
+                android:background="@drawable/btn_settings_bg" android:textColor="@color/btn_text"
+                android:focusable="true" android:clickable="true" />
+        </LinearLayout>
+
         <!-- 说明文字 -->
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="默认应用密码：4321（打开APP用）；默认解锁PIN：1234（解锁电视用）；请到“设置”中尽快修改"
+            android:text="应用密码用于打开本应用；解锁PIN用于锁屏解锁电视；请到“设置”中修改默认密码"
             android:textColor="@color/text_secondary"
             android:textSize="@dimen/text_body"
             android:layout_marginTop="@dimen/spacing_large" />

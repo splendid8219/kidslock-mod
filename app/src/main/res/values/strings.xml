@@ -44,7 +44,7 @@
     <string name="settings_new_pin">请输入新密码（4位数字）</string>
     <string name="settings_confirm_pin">请再次输入新密码</string>
     <string name="settings_save_pin">保存密码</string>
-    <string name="settings_pin_note">默认解锁PIN为 1234（用于锁屏时解锁电视），请尽快修改，防止儿童解锁。</string>
+    <string name="settings_pin_note">此密码用于锁屏时解锁电视，请尽快修改，防止儿童解锁。</string>
 
     <!-- Notification -->
     <string name="notif_title">儿童锁屏运行中</string>
