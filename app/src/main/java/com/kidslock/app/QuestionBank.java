@@ -192,6 +192,57 @@ public class QuestionBank {
         return items;
     }
 
+    // ===================== 趣味题库（课外拓展，解锁后随机触发） =====================
+
+    private List<BankItem> funItemsCache;
+
+    /**
+     * 抽取一道趣味题（课外拓展，与学科/年级无关）。
+     * 题库文件 questions/q_fun.json，结构同常规题库：{q, a, d[3干扰项]}。
+     * 返回 null 表示题库为空或加载失败。
+     */
+    public Question nextFunQuestion() {
+        if (funItemsCache == null) {
+            funItemsCache = loadArray("questions/q_fun.json");
+            Log.i(TAG, "Loaded " + (funItemsCache == null ? 0 : funItemsCache.size()) + " fun items");
+        }
+        if (funItemsCache == null || funItemsCache.isEmpty()) return null;
+        BankItem it = funItemsCache.get(random.nextInt(funItemsCache.size()));
+        List<String> opts = new ArrayList<>();
+        opts.add(it.a);
+        for (String d : it.d) opts.add(d);
+        Collections.shuffle(opts, random);
+        return new Question(it.q, opts, it.a, "趣味题库", "额外奖励", false);
+    }
+
+    /** 通用 JSON 数组加载（常规题库与趣味题库共用解析逻辑） */
+    private List<BankItem> loadArray(String assetName) {
+        List<BankItem> items = new ArrayList<>();
+        try {
+            InputStream is = context.getAssets().open(assetName);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) sb.append(line);
+            reader.close();
+            JSONArray arr = new JSONArray(sb.toString());
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject o = arr.getJSONObject(i);
+                BankItem it = new BankItem();
+                it.q = o.getString("q");
+                it.a = o.getString("a");
+                JSONArray da = o.getJSONArray("d");
+                it.d = new String[da.length()];
+                for (int j = 0; j < da.length(); j++) it.d[j] = da.getString(j);
+                items.add(it);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to load " + assetName, e);
+            return null;
+        }
+        return items;
+    }
+
     /** 筛选：向下兼容（grade <= maxGrade）+ 册匹配 */
     private List<BankItem> filterByGradeVolume(List<BankItem> items, int maxGrade, int volume) {
         List<BankItem> out = new ArrayList<>();

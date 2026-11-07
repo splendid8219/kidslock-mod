@@ -47,17 +47,14 @@ public class BootReceiver extends BroadcastReceiver {
         // 如果计时器正在运行
         if (pref.isTimerActive()) {
             if (pref.isTimerExpired()) {
-                // 计时已超时 → 锁屏
-                Log.i(TAG, "Timer expired during boot, locking");
-                pref.setLocked(true);
-                pref.setHomeAliasEnabled(context, true);
-                pref.stopTimer();
-                Intent lockIntent = new Intent(context, LockScreenActivity.class);
-                lockIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
-                        | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                context.startActivity(lockIntent);
+                // 计时已超时 → 重新开始一个完整周期计时（而非直接锁屏，
+                // 避免关机跨夜后每次开机都停在“超时/需手工开始”的状态）
+                Log.i(TAG, "Timer expired during boot, restarting timer");
+                int minutes = pref.getWatchLimitMinutes();
+                pref.startTimer(minutes);
+                startLockService(context);
             } else {
-                // 计时未超时 → 恢复计时服务
+                // 计时未超时 → 恢复计时服务（继续剩余时间）
                 Log.i(TAG, "Timer still running, resuming service");
                 startLockService(context);
             }

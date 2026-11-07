@@ -123,6 +123,55 @@
             android:layout_marginTop="@dimen/spacing_large"
             android:lineSpacingExtra="4dp" />
 
+        <!-- 设备管理员（防卸载门槛） -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/box_highlight"
+            android:padding="@dimen/spacing_medium"
+            android:layout_marginTop="@dimen/spacing_large">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="设备管理员（防卸载保护）"
+                android:textColor="@color/highlight"
+                android:textSize="@dimen/text_subtitle"
+                android:layout_marginBottom="@dimen/spacing_small" />
+
+            <Button
+                android:id="@+id/btnActivateAdmin"
+                android:layout_width="320dp"
+                android:layout_height="@dimen/btn_height"
+                android:text="激活设备管理员（防误卸载）"
+                android:textSize="@dimen/text_button"
+                android:background="@drawable/btn_settings_bg"
+                android:textColor="@color/btn_text"
+                android:layout_gravity="center_horizontal"
+                android:focusable="true"
+                android:clickable="true" />
+
+            <TextView
+                android:id="@+id/tvAdminMsg"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/wrong_red"
+                android:textSize="@dimen/text_body"
+                android:layout_marginTop="@dimen/spacing_small"
+                android:layout_gravity="center_horizontal" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="激活后，卸载本应用需先在系统“设置 → 安全 → 设备管理员”中取消本应用的管理员权限。忘记取消方法也无妨，恢复出厂设置可清除。"
+                android:textColor="@color/text_secondary"
+                android:textSize="@dimen/text_body"
+                android:gravity="center"
+                android:layout_marginTop="@dimen/spacing_small"
+                android:lineSpacingExtra="4dp" />
+        </LinearLayout>
+
         <!-- 应用打开密码（打开本应用时验证，默认 4321） -->
         <TextView
             android:layout_width="wrap_content"
@@ -215,44 +264,10 @@
             android:textSize="@dimen/text_body"
             android:layout_marginTop="@dimen/spacing_medium" />
 
-        <!-- 设备管理员（防卸载门槛） -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="设备管理员（防卸载保护）"
-            android:textColor="@color/highlight"
-            android:textSize="@dimen/text_subtitle"
-            android:layout_marginTop="@dimen/spacing_large"
-            android:layout_marginBottom="@dimen/spacing_medium" />
-
-        <Button
-            android:id="@+id/btnActivateAdmin"
-            android:layout_width="320dp"
-            android:layout_height="@dimen/btn_height"
-            android:text="激活设备管理员（防误卸载）"
-            android:textSize="@dimen/text_button"
-            android:background="@drawable/btn_settings_bg"
-            android:textColor="@color/btn_text"
-            android:focusable="true"
-            android:clickable="true" />
-
-        <TextView
-            android:id="@+id/tvAdminMsg"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/wrong_red"
-            android:textSize="@dimen/text_body"
-            android:layout_marginTop="@dimen/spacing_medium" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="激活后，卸载本应用需先在系统“设置 → 安全 → 设备管理员”中取消本应用的管理员权限。忘记取消方法也无妨，恢复出厂设置可清除。"
-            android:textColor="@color/text_secondary"
-            android:textSize="@dimen/text_body"
-            android:gravity="center"
-            android:layout_marginTop="@dimen/spacing_medium"
-            android:lineSpacingExtra="4dp" />
+        <!-- 底部留白：避开电视 overscan 裁切，确保最后一块内容可见 -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="80dp" />
 
     </LinearLayout>
 </ScrollView>

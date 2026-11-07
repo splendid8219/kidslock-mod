@@ -18,6 +18,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.util.List;
+import java.util.Random;
 
 /**
  * 锁屏界面：展示适龄全学科题目。
@@ -42,6 +43,11 @@ public class LockScreenActivity extends AppCompatActivity {
     // 解锁规则：首次答对 1 题即解锁；每次答错 +1，封顶 5 题
     private static final int INITIAL_REQUIRED = 1;
     private static final int MAX_REQUIRED = 5;
+
+    // 趣味题模式：学科题解锁成功后，50% 概率追加一道额外奖励题
+    private boolean funMode = false;
+    private int funBonus = 0;
+    private final Random random = new Random();
 
     // Views - 答题主界面
     private View layoutMain;
@@ -202,6 +208,25 @@ public class LockScreenActivity extends AppCompatActivity {
         for (Button b : optionButtons) b.setEnabled(false);
         String selected = currentOptions.get(index);
         boolean correct = selected.equals(correctAnswer);
+        if (funMode) {
+            // 趣味题：答错不处罚、不计入答错追加，仅影响额外奖励分钟
+            if (correct) {
+                funBonus = 3 + random.nextInt(8); // 随机 3~10 分钟
+                optionButtons[index].setBackgroundResource(R.drawable.btn_option_correct);
+                showFeedback("答对了！奖励 +" + funBonus + " 分钟观看时长", R.color.correct_green);
+            } else {
+                optionButtons[index].setBackgroundResource(R.drawable.btn_option_wrong);
+                for (int i = 0; i < currentOptions.size(); i++) {
+                    if (currentOptions.get(i).equals(correctAnswer)) {
+                        optionButtons[i].setBackgroundResource(R.drawable.btn_option_correct);
+                        break;
+                    }
+                }
+                showFeedback("答错了，本次无额外奖励", R.color.wrong_red);
+            }
+            handler.postDelayed(() -> unlock(funBonus), 1400);
+            return;
+        }
         if (correct) {
             optionButtons[index].setBackgroundResource(R.drawable.btn_option_correct);
         } else {
@@ -244,7 +269,7 @@ public class LockScreenActivity extends AppCompatActivity {
             correctCount++;
             showFeedback("答对了！正确答案：" + correctAnswer, R.color.correct_green);
             if (correctCount >= requiredCount) {
-                handler.postDelayed(this::unlock, 1000);
+                handler.postDelayed(this::maybeFunBonus, 1000);
             } else {
                 handler.postDelayed(this::loadNextQuestion, 1500);
             }
@@ -272,9 +297,60 @@ public class LockScreenActivity extends AppCompatActivity {
     // ==================== 解锁 ====================
 
     private void unlock() {
+        unlock(0);
+    }
+
+    /**
+     * 真正解锁并恢复观看。
+     * @param bonus 趣味题奖励分钟（0 表示无奖励）
+     */
+    private void unlock(int bonus) {
         // 解锁后重启倒计时并恢复计时守护：实现“每到设定时间再次自动锁屏”
-        LockService.resumeWatching(this);
+        LockService.resumeWatching(this, bonus);
         finishAffinity();
+    }
+
+    /**
+     * 学科题解锁成功后调用：50% 概率追加一道趣味题作为额外奖励，否则直接解锁。
+     */
+    private void maybeFunBonus() {
+        if (bank != null && random.nextBoolean()) {
+            enterFunMode();
+        } else {
+            unlock(0);
+        }
+    }
+
+    /**
+     * 进入趣味题模式：显示提示文案 + 一道趣味选择题。
+     * 答对随机加 3~10 分钟，答错无影响且不计答错追加。
+     */
+    private void enterFunMode() {
+        funMode = true;
+        funBonus = 0;
+        Question q = bank.nextFunQuestion();
+        if (q == null) {
+            unlock(0);
+            return;
+        }
+        currentQuestion = q;
+        correctAnswer = q.correct;
+        currentOptions = q.options;
+        fillInput.setLength(0);
+
+        tvSubject.setText("趣味题库 · 额外奖励");
+        tvQuestion.setText(q.prompt);
+        tvHint.setText("恭喜你触发额外奖励：答对可增加观看时长，答错不处罚");
+        tvProgress.setText("趣味题：答对 +3~10 分钟，答错无影响");
+        layoutFill.setVisibility(View.GONE);
+        layoutOptions.setVisibility(View.VISIBLE);
+        final String[] letters = {"a) ", "b) ", "c) ", "d) "};
+        for (int i = 0; i < optionButtons.length && i < currentOptions.size(); i++) {
+            optionButtons[i].setText(letters[i] + currentOptions.get(i));
+            optionButtons[i].setBackgroundResource(R.drawable.btn_option_bg);
+            optionButtons[i].setEnabled(true);
+        }
+        tvFeedback.setVisibility(View.GONE);
     }
 
     // ==================== 家长PIN ====================

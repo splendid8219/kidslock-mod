@@ -69,7 +69,8 @@ public class LockService extends Service {
 
         // 解锁后恢复观看：重新计时并回到计时模式（实现“每到设定时间再次锁屏”）
         if (intent != null && "com.kidslock.app.ACTION_RESUME".equals(intent.getAction())) {
-            resumeWatchingInternal();
+            int bonus = intent.getIntExtra("bonus_minutes", 0);
+            resumeWatchingInternal(bonus);
             return START_STICKY;
         }
 
@@ -89,14 +90,11 @@ public class LockService extends Service {
             return START_NOT_STICKY;
         }
 
-        // 如果已经超时，直接锁屏（仅当处于需要锁屏的时段内）
+        // 如果已经超时，直接锁屏
         if (pref.isTimerExpired()) {
-            if (pref.isWithinLockWindow()) {
-                Log.i(TAG, "Timer expired, locking now");
-                triggerLock();
-                return START_STICKY;
-            }
-            // 时段外：自由使用，进入计时循环（不会锁屏）
+            Log.i(TAG, "Timer expired, locking now");
+            triggerLock();
+            return START_STICKY;
         }
 
         // 开始计时循环
@@ -122,11 +120,10 @@ public class LockService extends Service {
                     showOverlayIfPermitted();
                     return;
                 }
-                if (pref.isTimerExpired() && pref.isWithinLockWindow()) {
+                if (pref.isTimerExpired()) {
                     triggerLock();
                     return;
                 }
-                // 时段外：即使计时到也不锁屏，自由使用（继续每秒检查，待进入时段再锁）
                 // 更新通知
                 updateNotification();
                 // 每秒检查
@@ -170,13 +167,6 @@ public class LockService extends Service {
                     hideOverlay();
                     stopForeground(true);
                     stopSelf();
-                    return;
-                }
-
-                // 时段外：自动解除锁屏，自由使用
-                if (!pref.isWithinLockWindow()) {
-                    Log.i(TAG, "Outside lock window, auto-unlock");
-                    resumeWatchingInternal();
                     return;
                 }
 
@@ -288,9 +278,10 @@ public class LockService extends Service {
      * 解锁（孩子答对 / 家长 PIN）后调用：重新启动倒计时并恢复计时守护，
      * 使到点后再次自动锁屏（而非解锁后就一直能看电视）。
      */
-    public static void resumeWatching(Context context) {
+    public static void resumeWatching(Context context, int bonusMinutes) {
         Intent intent = new Intent(context, LockService.class);
         intent.setAction("com.kidslock.app.ACTION_RESUME");
+        intent.putExtra("bonus_minutes", bonusMinutes);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.startForegroundService(intent);
         } else {
@@ -299,15 +290,15 @@ public class LockService extends Service {
     }
 
     /**
-     * 恢复观看的内部实现：解锁、重启倒计时、停掉守护并回到计时模式。
+     * 恢复观看的内部实现：解锁、重启倒计时（含趣味题奖励分钟）、停掉守护并回到计时模式。
      */
-    private void resumeWatchingInternal() {
+    private void resumeWatchingInternal(int bonus) {
         pref.setLocked(false);
         pref.setHomeAliasEnabled(this, false);
         pref.resetPinFailures();
         // 关键：重启倒计时（覆盖原 stopTimer），这样到点会再次自动锁屏。
-        // 若设置了“解锁奖励”，则给下次观看窗口追加奖励分钟数。
-        pref.startTimer(pref.getWatchLimitMinutes() + pref.getUnlockBonusMinutes());
+        // bonus 为趣味题奖励分钟（通常为 0，答对趣味题后为 3~10）。
+        pref.startTimer(pref.getWatchLimitMinutes() + bonus);
         if (watchdogRunnable != null) {
             handler.removeCallbacks(watchdogRunnable);
             watchdogRunnable = null;
@@ -337,8 +328,6 @@ public class LockService extends Service {
         String contentText;
         if (pref.isLocked()) {
             contentText = "电视已锁定，答对题目即可解锁";
-        } else if (!pref.isWithinLockWindow()) {
-            contentText = "时段外自由使用";
         } else {
             long remaining = pref.getRemainingMillis();
             contentText = "剩余观看时间：" + formatTime(remaining);
