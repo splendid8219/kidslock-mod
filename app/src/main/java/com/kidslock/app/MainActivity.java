@@ -267,8 +267,8 @@ public class MainActivity extends AppCompatActivity {
         builder.setPositiveButton("确定", (dialog, which) -> {
             String pin = input.getText().toString().trim();
             if (pin.equals(pref.getParentPin())) {
-                // 恢复观看并重启倒计时（到点再次锁屏）
-                LockService.resumeWatching(this);
+                // 恢复观看并重启倒计时（到点再次锁屏）；家长手动解锁无趣味题奖励
+                LockService.resumeWatching(this, 0);
                 toast("已解锁");
                 updateStatus();
             } else {
